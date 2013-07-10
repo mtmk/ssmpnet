@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-namespace Ssmpnet.Test
+namespace Ssmpnet
 {
     public class Sub
     {

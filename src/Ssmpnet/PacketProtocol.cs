@@ -1,7 +1,8 @@
 ﻿using System;
 
-namespace Ssmpnet.Test
+namespace Ssmpnet
 {
+    // Original source: http://blog.stephencleary.com/2009/04/sample-code-length-prefix-message.html
     /// <summary>
     /// Maintains the necessary buffers for applying a length-prefix message framing protocol over a stream.
     /// </summary>
@@ -13,10 +14,7 @@ namespace Ssmpnet.Test
     /// </remarks>
     public class PacketProtocol
     {
-        //
-        //http://blog.stephencleary.com/2009/04/sample-code-length-prefix-message.html
-        //
-        // Original source: http://blog.stephencleary.com/2009/04/sample-code-length-prefix-message.html
+
         /// <summary>
         /// Wraps a message. The wrapped message is ready to send to a stream.
         /// </summary>
