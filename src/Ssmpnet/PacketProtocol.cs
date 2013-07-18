@@ -197,5 +197,12 @@ namespace Ssmpnet
                 }
             }
         }
+
+        public void DataReceived(byte[] buffer, int offset, int count)
+        {
+            var bytes = new byte[count];
+            Buffer.BlockCopy(buffer, offset, bytes, 0, count);
+            DataReceived(bytes);
+        }
     }
 }

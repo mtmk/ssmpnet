@@ -27,7 +27,7 @@ namespace Ssmpnet
                 var se = new SocketAsyncEventArgs {UserToken = new UserToken(ut.Socket, ut.EndPoint)};
                 string message = "Hi!";
                 Log.Info(Tag, "send: {0}", message);
-                var buffer = Encoding.ASCII.GetBytes(message);
+                var buffer = PacketProtocol.WrapMessage(Encoding.ASCII.GetBytes(message));
                 se.SetBuffer(buffer, 0, buffer.Length);
                 se.Completed += CompletedSend;
                 if (!ut.Socket.SendAsync(se)) CompletedSend(null, se);
@@ -72,7 +72,7 @@ namespace Ssmpnet
                 Thread.Sleep(1 * 1000);
                 string message = "Hi! " + ut.Count++;
                 Log.Info(Tag, "send: {0}", message);
-                var buffer = Encoding.ASCII.GetBytes(message);
+                var buffer = PacketProtocol.WrapMessage(Encoding.ASCII.GetBytes(message));
                 e.SetBuffer(buffer, 0, buffer.Length);
                 if (!ut.Socket.SendAsync(e)) CompletedSend(null, e);
             }

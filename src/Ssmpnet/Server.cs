@@ -31,10 +31,22 @@ namespace Ssmpnet
 
                 Log.Info(Tag, "Client connected.. [RemoteEndPoint:{0}]", socket.RemoteEndPoint);
 
-                var se = new SocketAsyncEventArgs { UserToken = new UserToken(socket) };
+                var packetProtocol = new PacketProtocol(1024);
+                var userToken = new UserToken(socket)
+                                    {
+                                        PacketProtocol = packetProtocol
+                                    };
+
+                packetProtocol.MessageArrived += m =>
+                                                     {
+                                                         string message = Encoding.ASCII.GetString(m);
+                                                         Log.Info(Tag, "recv: {0}", message);
+                                                     };
+
+                var se = new SocketAsyncEventArgs { UserToken = userToken };
                 se.Completed += CompletedReceive;
                 se.SetBuffer(new byte[1024], 0, 1024);
-                if(!socket.ReceiveAsync(se)) CompletedReceive(null, se);
+                if (!socket.ReceiveAsync(se)) CompletedReceive(null, se);
             }
             else
             {
@@ -47,8 +59,7 @@ namespace Ssmpnet
             var ut = (UserToken)e.UserToken;
             if (e.SocketError == SocketError.Success)
             {
-                string message = Encoding.ASCII.GetString(e.Buffer, 0, e.BytesTransferred);
-                Log.Info(Tag, "recv: {0}", message);
+                ut.PacketProtocol.DataReceived(e.Buffer, 0, e.BytesTransferred);
                 e.SetBuffer(0, e.Buffer.Length);
                 if (!ut.Socket.ReceiveAsync(e)) CompletedReceive(null, e);
             }

@@ -8,6 +8,7 @@ namespace Ssmpnet
         public Socket Socket;
         public IPEndPoint EndPoint;
         public int Count;
+        public PacketProtocol PacketProtocol;
 
         public UserToken(Socket socket)
         {
