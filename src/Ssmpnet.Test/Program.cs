@@ -30,6 +30,7 @@ namespace Ssmpnet.Test
                     //Thread.Sleep(1);
                 }
             }
+
             else if (args.Length == 1 && args[0] == "sub")
             {
                 Console.WriteLine();
@@ -53,24 +54,29 @@ namespace Ssmpnet.Test
                 sub.Start(cancellationToken);
                 cancellationToken.WaitHandle.WaitOne();
             }
+
             else if (args.Length == 1 && args[0] == "async-cli-serv")
             {
                 Server.Start(new IPEndPoint(IPAddress.Any, 12345));
                 Client.Start(new IPEndPoint(IPAddress.Loopback, 12345));
                 cancellationToken.WaitHandle.WaitOne();
             }
+
             else if (args.Length == 1 && args[0] == "async-cli")
             {
                 Client.Start(new IPEndPoint(IPAddress.Loopback, 12345));
                 cancellationToken.WaitHandle.WaitOne();
-            }            else if (args.Length == 1 && args[0] == "async-serv")
+            }
+
+            else if (args.Length == 1 && args[0] == "async-serv")
             {
                 Server.Start(new IPEndPoint(IPAddress.Any, 12345));
                 cancellationToken.WaitHandle.WaitOne();
             }
+
             else
             {
-                Console.WriteLine("Usage: program.exe <pub|sub>");
+                Console.WriteLine("Usage: program.exe <option>");
             }
         }
     }
