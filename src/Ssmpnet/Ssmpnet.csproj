@@ -46,6 +46,7 @@
     <Compile Include="Client.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="PacketProtocol.cs" />
+    <Compile Include="PacketProtocol2.cs" />
     <Compile Include="PublisherSocketTcpSimple.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Server.cs" />
