@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Text;
-using Xunit;
+using NUnit.Framework;
 
 namespace Ssmpnet.Test
 {
+    [TestFixture]
     public class PacketProtocol2Tests
     {
-        [Fact]
-        public void T()
+        [Test]
+        public void MessageSplit()
         {
             int numMessages = 0;
             var packetizer = new PacketProtocol2();
@@ -17,7 +18,7 @@ namespace Ssmpnet.Test
                 ++numMessages;
             };
 
-            byte[] wrapMessage = PacketProtocol.WrapMessage(Encoding.UTF8.GetBytes("HelloWorldExample"));
+            byte[] wrapMessage = PacketProtocol2.WrapMessage(Encoding.UTF8.GetBytes("HelloWorldExample"));
             int len = wrapMessage.Length;
             int len1 = len / 2;
             int len2 = len - len1;
@@ -39,16 +40,47 @@ namespace Ssmpnet.Test
 
             Console.WriteLine("Num messages: {0}", numMessages);
             
-            Assert.Equal(1, numMessages);
+            Assert.AreEqual(1, numMessages);
+        }
+
+        [Test]
+        public void MultipleMessages()
+        {
+            int numMessages = 0;
+            var packetizer = new PacketProtocol2();
+            packetizer.MessageArrived += message =>
+            {
+                Console.WriteLine("GOT MSG: >>>" + Encoding.UTF8.GetString(message) + "<<<");
+                ++numMessages;
+            };
+
+            byte[] w1 = PacketProtocol2.WrapMessage(Encoding.UTF8.GetBytes("HelloWorldExample1"));
+            byte[] w2 = PacketProtocol2.WrapMessage(Encoding.UTF8.GetBytes("HelloWorldExample2"));
+            byte[] w3 = PacketProtocol2.WrapMessage(Encoding.UTF8.GetBytes("HelloWorldExample3"));
+            var buf = new byte[w1.Length + w2.Length + w3.Length];
+
+            Buffer.BlockCopy(w1, 0, buf, 0, w1.Length);
+            Buffer.BlockCopy(w2, 0, buf, w1.Length, w2.Length);
+            Buffer.BlockCopy(w3, 0, buf, w1.Length + w2.Length, w3.Length);
+
+            packetizer.DataReceived(buf);
+
+            Console.WriteLine("Num messages: {0}", numMessages);
+
+            Assert.AreEqual(3, numMessages);
         }
 
         /*
-         * Case 1:
-         *   data is empty
-         *    - do nothing
+         *  Case 1:
+         *    data is empty
+         *      - do nothing
          *  2
          *    data is smaller than head
-         *     keep reading head
+         *      - keep reading head
+         *  3
+         *    data is same size or larger than head
+         *      - 
+         *  
          
          
          

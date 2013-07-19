@@ -18,27 +18,10 @@ namespace Ssmpnet
         }
 
         /// <summary>
-        /// Initializes a new <see cref="PacketProtocol"/>, limiting message sizes to the given maximum size.
-        /// </summary>
-        /// <param name="maxMessageSize">The maximum message size supported by this protocol.
-        ///  This may be less than or equal to zero to indicate no maximum message size.</param>
-        public PacketProtocol2(int maxMessageSize)
-        {
-            // We allocate the buffer for receiving message lengths immediately
-            _lengthBuffer = new byte[sizeof(int)];
-            _maxMessageSize = maxMessageSize;
-        }
-        public PacketProtocol2()
-        {
-            // We allocate the buffer for receiving message lengths immediately
-            _lengthBuffer = new byte[sizeof(int)];
-            _maxMessageSize = 0;
-        }
-
-        /// <summary>
         /// The buffer for the length prefix; this is always 4 bytes long.
         /// </summary>
-        private readonly byte[] _lengthBuffer;
+        // We allocate the buffer for receiving message lengths immediately
+        private readonly byte[] _lengthBuffer = new byte[sizeof(uint)];
 
         /// <summary>
         /// The buffer for the data; this is null if we are receiving the length prefix buffer.
@@ -52,11 +35,6 @@ namespace Ssmpnet
         private int _bytesReceived;
 
         /// <summary>
-        /// The maximum size of messages allowed.
-        /// </summary>
-        private readonly int _maxMessageSize;
-
-        /// <summary>
         /// Indicates the completion of a message read from the stream.
         /// </summary>
         /// <remarks>
@@ -66,6 +44,7 @@ namespace Ssmpnet
         ///  Handlers for this event should not call <see><cref>DataReceived</cref></see>.</para>
         /// </remarks>
         public Action<byte[]> MessageArrived { get; set; }
+        public Action KeepAlive { get; set; }
 
         /// <summary>
         /// Notifies the <see cref="PacketProtocol2"/> instance that incoming data has been received from the stream.
@@ -86,7 +65,7 @@ namespace Ssmpnet
             //  incoming buffer looking for messages.
 
             int i = 0;
-            while (i != data.Length)
+            while (i < data.Length)
             {
                 // Determine how many bytes we want to transfer to the buffer and transfer them
                 int bytesAvailable = data.Length - i;
@@ -97,7 +76,7 @@ namespace Ssmpnet
 
                     // Copy the incoming bytes into the buffer
                     int bytesTransferred = Math.Min(bytesRequested, bytesAvailable);
-                    Array.Copy(data, i, _lengthBuffer, _bytesReceived, bytesTransferred);
+                    Buffer.BlockCopy(data, i, _lengthBuffer, _bytesReceived, bytesTransferred);
                     i += bytesTransferred;
 
                     // Notify "read completion"
@@ -110,7 +89,7 @@ namespace Ssmpnet
 
                     // Copy the incoming bytes into the buffer
                     int bytesTransferred = Math.Min(bytesRequested, bytesAvailable);
-                    Array.Copy(data, i, _dataBuffer, _bytesReceived, bytesTransferred);
+                    Buffer.BlockCopy(data, i, _dataBuffer, _bytesReceived, bytesTransferred);
                     i += bytesTransferred;
 
                     // Notify "read completion"
@@ -135,6 +114,33 @@ namespace Ssmpnet
                 FillDataBuffer();
         }
 
+        private void FillLengthBuffer()
+        {
+            if (_bytesReceived != sizeof(uint))
+            {
+                // We haven't gotten all the length buffer yet: just wait for more data to arrive
+            }
+            else
+            {
+                // We've gotten the length buffer
+                uint length = BitConverter.ToUInt32(_lengthBuffer, 0);
+
+                // Zero-length packets are allowed as keepalives
+                if (length == 0)
+                {
+                    _bytesReceived = 0;
+                    if (KeepAlive != null)
+                        KeepAlive();
+                }
+                else
+                {
+                    // Create the data buffer and start reading into it
+                    _dataBuffer = new byte[length];
+                    _bytesReceived = 0;
+                }
+            }
+        }
+
         private void FillDataBuffer()
         {
             if (_bytesReceived != _dataBuffer.Length)
@@ -150,50 +156,6 @@ namespace Ssmpnet
                 // Start reading the length buffer again
                 _dataBuffer = null;
                 _bytesReceived = 0;
-            }
-        }
-
-        private void FillLengthBuffer()
-        {
-            if (_bytesReceived != sizeof(int))
-            {
-                // We haven't gotten all the length buffer yet: just wait for more data to arrive
-            }
-            else
-            {
-                // We've gotten the length buffer
-                int length = BitConverter.ToInt32(_lengthBuffer, 0);
-
-                // Sanity check for length < 0
-                if (length < 0)
-                    throw new System.Net.ProtocolViolationException("Message length is less than zero");
-
-                // Another sanity check is needed here for very large packets, to prevent denial-of-service attacks
-                if (_maxMessageSize > 0 && length > _maxMessageSize)
-                {
-                    throw new System.Net.ProtocolViolationException("Message length "
-                                                                    +
-                                                                    length.ToString(
-                                                                        System.Globalization.CultureInfo.InvariantCulture)
-                                                                    + " is larger than maximum message size "
-                                                                    +
-                                                                    _maxMessageSize.ToString(
-                                                                        System.Globalization.CultureInfo.InvariantCulture));
-                }
-
-                // Zero-length packets are allowed as keepalives
-                if (length == 0)
-                {
-                    _bytesReceived = 0;
-                    if (MessageArrived != null)
-                        MessageArrived(new byte[0]);
-                }
-                else
-                {
-                    // Create the data buffer and start reading into it
-                    _dataBuffer = new byte[length];
-                    _bytesReceived = 0;
-                }
             }
         }
 
