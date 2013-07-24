@@ -8,6 +8,7 @@ namespace Ssmpnet
     public static class Client
     {
         const string Tag = "Client";
+
         public static void Start(IPEndPoint endPoint)
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
