@@ -31,17 +31,17 @@ namespace Ssmpnet
 
                 Log.Info(Tag, "Client connected.. [RemoteEndPoint:{0}]", socket.RemoteEndPoint);
 
-                var packetProtocol = new PacketProtocol(1024);
+                var packetProtocol = new PacketProtocol();
                 var userToken = new UserToken(socket)
-                                    {
-                                        PacketProtocol = packetProtocol
-                                    };
+                {
+                    PacketProtocol = packetProtocol
+                };
 
                 packetProtocol.MessageArrived += m =>
-                                                     {
-                                                         string message = Encoding.ASCII.GetString(m);
-                                                         Log.Info(Tag, "recv: {0}", message);
-                                                     };
+                {
+                    string message = Encoding.ASCII.GetString(m);
+                    Log.Info(Tag, "recv: {0}", message);
+                };
 
                 var se = new SocketAsyncEventArgs { UserToken = userToken };
                 se.Completed += CompletedReceive;

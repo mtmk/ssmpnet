@@ -1,6 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ssmpnet", "Ssmpnet\Ssmpnet.csproj", "{6BAE8331-3EA6-4A5D-BE25-D580B8A2AFB9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ssmpnet.Test", "Ssmpnet.Test\Ssmpnet.Test.csproj", "{29F4A11F-FBBE-49A9-A595-060733CAFB5C}"

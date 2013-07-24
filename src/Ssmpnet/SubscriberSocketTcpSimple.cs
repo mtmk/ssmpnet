@@ -33,7 +33,7 @@ namespace Ssmpnet
             while (!cancellationToken.IsCancellationRequested)
             {
                 NetworkStream networkStream = null;
-                var pp = new PacketProtocol(8 * 1024 *1024) {MessageArrived = _callback};
+                var pp = new PacketProtocol() {MessageArrived = _callback};
                 var buf = new byte[1024];
                 try
                 {

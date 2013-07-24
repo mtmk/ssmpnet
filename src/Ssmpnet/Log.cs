@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
 
 namespace Ssmpnet
@@ -10,11 +11,13 @@ namespace Ssmpnet
             ConsoleWriteLine("ERROR", tag, format, args);
         }
 
+        [Conditional("TRACE")]
         public static void Info(string tag, string format, params object[] args)
         {
             ConsoleWriteLine("INFO", tag, format, args);
         }
 
+        [Conditional("DEBUG")]
         public static void Debug(string tag, string format, params object[] args)
         {
             ConsoleWriteLine("DEBUG", tag, format, args);
