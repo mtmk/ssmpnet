@@ -5,6 +5,8 @@ namespace Ssmpnet
 {
     public class PublisherClientToken
     {
+        const string Tag = "PublisherClientToken";
+
         public Socket Socket;
         public IPEndPoint EndPoint;
         public int Count;
@@ -21,6 +23,7 @@ namespace Ssmpnet
 
         public void Send(byte[] message)
         {
+            Log.Debug(Tag, "Sending message..");
             Sender.SetBuffer(message, 0, message.Length);
             if (!Socket.SendAsync(Sender)) CompletedSend(null, Sender);
         }
@@ -28,6 +31,9 @@ namespace Ssmpnet
         static void CompletedSend(object sender, SocketAsyncEventArgs e)
         {
             var pct = (PublisherClientToken)e.UserToken;
+
+            Log.Debug(Tag, "Completed send: {0}", e.SocketError);
+
             if (e.SocketError == SocketError.Success)
             {
             }
@@ -39,6 +45,8 @@ namespace Ssmpnet
 
         static void Close(PublisherClientToken pct)
         {
+            Log.Debug(Tag, "Closing socket");
+
             var socket = pct.Socket;
             PublisherClientToken _;
             pct.Parent.Subs.TryRemove(socket, out _);
@@ -51,6 +59,7 @@ namespace Ssmpnet
             }
             catch (SocketException e)
             {
+                Log.Debug(Tag, "Error in shutdown: {0}", e.Message);
             }
             socket.Close();
         }

@@ -8,6 +8,7 @@ namespace Ssmpnet
     public static class SubscriberSocket
     {
         const string Tag = "SubscriberSocket";
+
         private const int BufferSize = 64 * 1024;
 
         public static void Start(IPEndPoint endPoint, Action<byte[]> receiver)

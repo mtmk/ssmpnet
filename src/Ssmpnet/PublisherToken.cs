@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 
 namespace Ssmpnet
 {
@@ -28,14 +28,13 @@ namespace Ssmpnet
 
         public void Publish(byte[] message)
         {
-            Log.Debug(Tag, "Publishing message..");
+            var subscribers = Subs.Values;
+            Log.Debug(Tag, "Publishing message..#{0}", subscribers.Count);
             byte[] wrapMessage = PacketProtocol.WrapMessage(message);
-            foreach (var s in Subs.Values)
+            foreach (var s in subscribers)
             {
                 s.Send(wrapMessage);
             }
         }
-
-       
     }
 }
