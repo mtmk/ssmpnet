@@ -34,14 +34,7 @@ namespace Ssmpnet
 
                 Log.Info(Tag, "Client connected.. [RemoteEndPoint:{0}]", socket.RemoteEndPoint);
 
-                var packetProtocol = new PacketProtocol();
-                var pct = new PublisherClientToken(socket)
-                                {
-                                    PacketProtocol = packetProtocol
-                                };
-                pt.Subs.TryAdd(socket, pct);
-                pct.Parent = pt;
-                pct.Sender.UserToken = pct;
+                pt.AddNewSubscriber(socket);
             }
             else
             {

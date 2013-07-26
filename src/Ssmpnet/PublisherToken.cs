@@ -9,26 +9,29 @@ namespace Ssmpnet
     {
         const string Tag = "PublisherToken";
 
-        public Socket Socket;
-        public IPEndPoint EndPoint;
-        public int Count;
-        public PacketProtocol PacketProtocol;
-        public ConcurrentDictionary<Socket, PublisherClientToken> Subs = new ConcurrentDictionary<Socket, PublisherClientToken>(); 
+        readonly ConcurrentDictionary<Socket, PublisherClientToken> _subs = new ConcurrentDictionary<Socket, PublisherClientToken>();
+        
+        internal readonly Socket Socket;
 
-        public PublisherToken(Socket socket)
+        internal PublisherToken(Socket socket)
         {
             Socket = socket;
         }
 
-        public PublisherToken(Socket socket, IPEndPoint endPoint)
+        internal void AddNewSubscriber(Socket socket)
         {
-            Socket = socket;
-            EndPoint = endPoint;
+            _subs.TryAdd(socket, new PublisherClientToken(socket, this));
+        }
+
+        internal void RemoveSubscriber(Socket socket)
+        {
+            PublisherClientToken _;
+            _subs.TryRemove(socket, out _);
         }
 
         public void Publish(byte[] message)
         {
-            var subscribers = Subs.Values;
+            var subscribers = _subs.Values;
             Log.Debug(Tag, "Publishing message..#{0}", subscribers.Count);
             byte[] wrapMessage = PacketProtocol.WrapMessage(message);
             foreach (var s in subscribers)

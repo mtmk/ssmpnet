@@ -11,11 +11,11 @@ namespace Ssmpnet
 
         private const int BufferSize = 64 * 1024;
 
-        public static void Start(IPEndPoint endPoint, Action<byte[]> receiver)
+        public static void Start(IPEndPoint endPoint, Action<byte[]> receiver, Action connected = null)
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-            var st = new SubscriberToken(socket, endPoint) {Receiver = receiver};
+            var st = new SubscriberToken(socket, endPoint) {Receiver = receiver, Connected = connected};
             var e = new SocketAsyncEventArgs { UserToken = st, RemoteEndPoint = endPoint };
             e.Completed += CompletedConnect;
 
@@ -27,6 +27,9 @@ namespace Ssmpnet
             var st = (SubscriberToken)e.UserToken;
             if (e.SocketError == SocketError.Success)
             {
+                if (st.Connected != null)
+                    st.Connected();
+
                 var sst = new SubscriberToken(st.Socket, st.EndPoint)
                           {
                               Receiver = st.Receiver,
@@ -41,18 +44,22 @@ namespace Ssmpnet
             else
             {
                 Log.Error(Tag, "Error: CompletedConnect: {0}", e.SocketError);
-                Retry(st.Socket, st.EndPoint, st.Receiver);
+                Retry(st);
             }
         }
 
-        private static void Retry(Socket socket, IPEndPoint endPoint, Action<byte[]> receiver)
+        private static void Retry(SubscriberToken st)
         {
+            Socket socket = st.Socket;
+            IPEndPoint endPoint = st.EndPoint;
+            Action<byte[]> receiver = st.Receiver;
+            Action connected = st.Connected;
             Thread.Sleep(3 * 1000);
 
             Log.Error(Tag, "Retry..");
 
             Close(socket);
-            Start(endPoint, receiver);
+            Start(endPoint, receiver, connected);
         }
 
         private static void Close(Socket socket)
@@ -65,7 +72,7 @@ namespace Ssmpnet
             }
             catch (SocketException e)
             {
-                Log.Error(Tag, "socket.Shutdown: {0}", e);
+                Log.Debug(Tag, "socket.Shutdown: {0}", e);
             }
             socket.Close();
         }
@@ -81,8 +88,8 @@ namespace Ssmpnet
             }
             else
             {
-                Log.Error(Tag, "Error: CompletedReceive: {0}", e.SocketError);
-                Retry(st.Socket, st.EndPoint, st.Receiver);
+                Log.Debug(Tag, "Error: CompletedReceive: {0}", e.SocketError);
+                Retry(st);
             }
         }
     }

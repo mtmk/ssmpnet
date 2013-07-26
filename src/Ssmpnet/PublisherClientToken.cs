@@ -1,31 +1,37 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace Ssmpnet
 {
-    public class PublisherClientToken
+    internal class PublisherClientToken
     {
         const string Tag = "PublisherClientToken";
 
-        public Socket Socket;
-        public IPEndPoint EndPoint;
-        public int Count;
-        public PacketProtocol PacketProtocol;
-        public PublisherToken Parent;
-        public SocketAsyncEventArgs Sender;
+        readonly ManualResetEventSlim _r = new ManualResetEventSlim(true);
 
-        public PublisherClientToken(Socket socket)
+        internal Socket Socket;
+        internal IPEndPoint EndPoint;
+        internal int Count;
+        readonly PublisherToken _parent;
+        readonly SocketAsyncEventArgs _sender;
+
+        internal PublisherClientToken(Socket socket, PublisherToken publisherToken)
         {
             Socket = socket;
-            Sender = new SocketAsyncEventArgs();
-            Sender.Completed += CompletedSend;
+            _sender = new SocketAsyncEventArgs();
+            _sender.Completed += CompletedSend;
+            _sender.UserToken = this;
+            _parent = publisherToken;
         }
 
-        public void Send(byte[] message)
+        internal void Send(byte[] message)
         {
+            _r.Wait();
+            _r.Reset();
             Log.Debug(Tag, "Sending message..");
-            Sender.SetBuffer(message, 0, message.Length);
-            if (!Socket.SendAsync(Sender)) CompletedSend(null, Sender);
+            _sender.SetBuffer(message, 0, message.Length);
+            if (!Socket.SendAsync(_sender)) CompletedSend(null, _sender);
         }
 
         static void CompletedSend(object sender, SocketAsyncEventArgs e)
@@ -41,6 +47,7 @@ namespace Ssmpnet
             {
                 Close(pct);
             }
+            pct._r.Set();
         }
 
         static void Close(PublisherClientToken pct)
@@ -48,8 +55,7 @@ namespace Ssmpnet
             Log.Debug(Tag, "Closing socket");
 
             var socket = pct.Socket;
-            PublisherClientToken _;
-            pct.Parent.Subs.TryRemove(socket, out _);
+            pct._parent.RemoveSubscriber(socket);
 
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontLinger, true);
             try

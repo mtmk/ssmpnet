@@ -4,24 +4,24 @@ using System.Net.Sockets;
 
 namespace Ssmpnet
 {
-    public class SubscriberToken
+    internal class SubscriberToken
     {
-        public Socket Socket;
-        public IPEndPoint EndPoint;
-        public int Count;
-        public PacketProtocol PacketProtocol;
+        internal Socket Socket;
+        internal IPEndPoint EndPoint;
+        internal PacketProtocol PacketProtocol;
 
-        public SubscriberToken(Socket socket)
+        internal SubscriberToken(Socket socket)
         {
             Socket = socket;
         }
 
-        public SubscriberToken(Socket socket, IPEndPoint endPoint)
+        internal SubscriberToken(Socket socket, IPEndPoint endPoint)
         {
             Socket = socket;
             EndPoint = endPoint;
         }
 
-        public Action<byte[]> Receiver { get; set; }
+        internal Action<byte[]> Receiver { get; set; }
+        internal Action Connected;
     }
 }
