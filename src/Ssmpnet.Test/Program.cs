@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Threading;
-
+using TAP;
 namespace Ssmpnet.Test
 {
     public class Program
@@ -20,7 +20,15 @@ namespace Ssmpnet.Test
                                           cancellationTokenSource.Cancel();
                                       };
 
-            if (args.Length == 1 && args[0] == "pub")
+            if (args.Length == 1 && args[0] == "tap")
+            {
+                Plan.Tests(3);
+                Assert.Ok("test test 1");
+                Assert.Ok(true, "test test 2");
+                Assert.NotOk("test test 3 fails");
+            }
+            
+            else if (args.Length == 1 && args[0] == "pub")
             {
                 var pub = PublisherSocket.Start(new IPEndPoint(IPAddress.Any, 56789));
                 int i = 0;
