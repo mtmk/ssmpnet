@@ -23,9 +23,9 @@ namespace Ssmpnet.Test
             if (args.Length == 1 && args[0] == "tap")
             {
                 Plan.Tests(3);
-                Assert.Ok("test test 1");
-                Assert.Ok(true, "test test 2");
-                Assert.NotOk("test test 3 fails");
+                Assert.Ok("test 1");
+                Assert.Ok(true, "test 2");
+                Assert.Ok("test 3");
             }
             
             else if (args.Length == 1 && args[0] == "pub")

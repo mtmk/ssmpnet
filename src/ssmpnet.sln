@@ -9,6 +9,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{823ACD5B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ssmpnet.LoadTest", "Ssmpnet.LoadTest\Ssmpnet.LoadTest.csproj", "{8026541E-4340-4175-88E5-040386A922F8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ssmpnet.LoadTest.Netmq", "Ssmpnet.LoadTest.Netmq\Ssmpnet.LoadTest.Netmq.csproj", "{DC9B20C7-D4B1-4FEE-BB80-C1A2AF5F8B94}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ssmpnet.ResilienceTest", "Ssmpnet.ResilienceTest\Ssmpnet.ResilienceTest.csproj", "{D45D38B4-8D44-484F-BACF-DA89F6B58363}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,11 +31,21 @@ Global
 		{8026541E-4340-4175-88E5-040386A922F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8026541E-4340-4175-88E5-040386A922F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8026541E-4340-4175-88E5-040386A922F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC9B20C7-D4B1-4FEE-BB80-C1A2AF5F8B94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC9B20C7-D4B1-4FEE-BB80-C1A2AF5F8B94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC9B20C7-D4B1-4FEE-BB80-C1A2AF5F8B94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC9B20C7-D4B1-4FEE-BB80-C1A2AF5F8B94}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D45D38B4-8D44-484F-BACF-DA89F6B58363}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D45D38B4-8D44-484F-BACF-DA89F6B58363}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D45D38B4-8D44-484F-BACF-DA89F6B58363}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D45D38B4-8D44-484F-BACF-DA89F6B58363}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{8026541E-4340-4175-88E5-040386A922F8} = {823ACD5B-3E03-41BD-B9D8-C94A263A9FED}
+		{DC9B20C7-D4B1-4FEE-BB80-C1A2AF5F8B94} = {823ACD5B-3E03-41BD-B9D8-C94A263A9FED}
+		{D45D38B4-8D44-484F-BACF-DA89F6B58363} = {823ACD5B-3E03-41BD-B9D8-C94A263A9FED}
 	EndGlobalSection
 EndGlobal

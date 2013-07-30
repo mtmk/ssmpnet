@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using TAP;
 
 namespace Ssmpnet.LoadTest
 {
@@ -42,14 +43,17 @@ namespace Ssmpnet.LoadTest
                 }
                 pub.Publish(Encoding.ASCII.GetBytes("END"));
                 Thread.Sleep(1000);
-                Console.WriteLine("Published {0} messages ({1:0.00}MB avg:{2:0.00}KB)", i, size/(1024*1024), (size/i)/1024);
+
+                Assert.Ok("Done publishing");
+                
+                Assert.Comment("Published {0} messages", i);
+                Assert.Comment("Size: {0:0.00}MB avg:{1:0.00}KB", size/(1024*1024), (size/i)/1024);
             }
 
             else if (args.Length == 1 && args[0] == "sub")
             {
                 var sw = new Stopwatch();
 
-                sw.Start();
                 int i = 0;
                 int total = 0;
                 
@@ -63,6 +67,7 @@ namespace Ssmpnet.LoadTest
                         if (message == "END")
                         {
                             sw.Stop();
+                            Assert.Ok("Received end message");
                             cancellationTokenSource.Cancel();
                         }
                     }, sw.Start);
@@ -70,23 +75,29 @@ namespace Ssmpnet.LoadTest
                 cancellationToken.WaitHandle.WaitOne();
                 TimeSpan permsg = TimeSpan.FromTicks(sw.Elapsed.Ticks/i);
 
-                Console.WriteLine("received {0} ({1:0.00}MB) messages in {2} ({3} per msg)", Thread.VolatileRead(ref i),
-                    ((double)Thread.VolatileRead(ref total)) / (1024 * 1024), sw.Elapsed,
-                    permsg);
+                Assert.Ok("Done subscribing");
+
+                Assert.Comment("Received {0} ({1:0.00}MB) messages", Thread.VolatileRead(ref i), ((double)Thread.VolatileRead(ref total)) / (1024 * 1024));
+                Assert.Comment("Time: {0} ({1} per msg)", sw.Elapsed, permsg);
+                Assert.BenchVar("TIME", sw.Elapsed, "permsg");
             }
 
             else
             {
-                Task taskPub = Task.Factory.StartNew(()=>Run("PUB", "pub"));
-                Task taskSub = Task.Factory.StartNew(()=>Run("SUB", "sub"));
+                Plan.Tests(4);
+                Plan.BenchName("SSMPNET");
+                Task taskPub = Task.Factory.StartNew(()=>Run("pub"));
+                Task taskSub = Task.Factory.StartNew(()=>Run("sub"));
                 Task.WaitAll(taskPub, taskSub);
+
+                Assert.Ok("Finished tests");
                 //cancellationToken.WaitHandle.WaitOne();
                 //Process pub = Process.Start(Assembly.GetEntryAssembly().GetName().Name + ".exe", "pub");
                 //Process sub = Process.Start(Assembly.GetEntryAssembly().GetName().Name + ".exe", "sub");
             }
         }
 
-        static void Run(string name, string args)
+        static void Run(string args)
         {
             var file = Assembly.GetEntryAssembly().GetName().Name + ".exe";
             var process = new Process
@@ -104,13 +115,13 @@ namespace Ssmpnet.LoadTest
                                           {
                                               string data = e.Data;
                                               if (data != null)
-                                                  Console.Out.WriteLine("[{0}] OUT {1}", name, data);
+                                                  Console.Out.WriteLine(data);
                                           };
             process.ErrorDataReceived += (s, e) =>
                                          {
                                              string data = e.Data;
                                              if (data != null)
-                                                 Console.Error.WriteLine("[{0}] ERR {1}", name, data);
+                                                 Console.Error.WriteLine(data);
                                          };
 
             process.Start();
