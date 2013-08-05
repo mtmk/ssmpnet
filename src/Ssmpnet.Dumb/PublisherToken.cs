@@ -1,9 +1,7 @@
 ﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Net;
 using System.Net.Sockets;
 
-namespace Ssmpnet
+namespace Ssmpnet.Dumb
 {
     public class PublisherToken
     {
@@ -12,6 +10,7 @@ namespace Ssmpnet
         readonly ConcurrentDictionary<Socket, PublisherClientToken> _subs = new ConcurrentDictionary<Socket, PublisherClientToken>();
         
         internal readonly Socket Socket;
+        //private PublisherClientToken publisherClientToken;
 
         internal PublisherToken(Socket socket)
         {
@@ -20,7 +19,8 @@ namespace Ssmpnet
 
         internal void AddNewSubscriber(Socket socket)
         {
-            _subs.TryAdd(socket, new PublisherClientToken(socket, this));
+            var publisherClientToken = new PublisherClientToken(socket, this);
+            _subs.TryAdd(socket, publisherClientToken);
         }
 
         internal void RemoveSubscriber(Socket socket)
@@ -31,9 +31,11 @@ namespace Ssmpnet
 
         public void Publish(byte[] message)
         {
+            //publisherClientToken.Send(message);
+
             var subscribers = _subs.Values;
             Log.Debug(Tag, "Publishing message..#{0}", subscribers.Count);
-            byte[] wrapMessage = PacketProtocol.WrapMessage(message);
+            byte[] wrapMessage = message;
             foreach (var s in _subs)
             {
                 s.Value.Send(wrapMessage);

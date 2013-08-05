@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 
-namespace Ssmpnet
+namespace Ssmpnet.Dumb
 {
     public static class PublisherSocket
     {
@@ -36,6 +34,11 @@ namespace Ssmpnet
 
                 Log.Info(Tag, "Client connected.. [RemoteEndPoint:{0}]", socket.RemoteEndPoint);
 
+                // XXX
+                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, 1);
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendBuffer, 1024 * 1024 * 1);
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, -1);
+
                 pt.AddNewSubscriber(socket);
             }
             else
@@ -44,7 +47,4 @@ namespace Ssmpnet
             }
         }
     }
-
- 
-
 }

@@ -27,6 +27,13 @@ namespace Ssmpnet.LoadTest.Netmq
                 cancellationTokenSource.Cancel();
             };
 
+            Task.Factory.StartNew(() =>
+            {
+                var c = Console.ReadLine();
+                if (c == "EXIT")
+                    cancellationTokenSource.Cancel();
+            }, cancellationToken);
+
             if (args.Any(a => a == "pub"))
             {
                 var rnd = RandomNumberGenerator.Create();
@@ -41,7 +48,7 @@ namespace Ssmpnet.LoadTest.Netmq
                     Thread.Sleep(1000); // warmup
                     int i = 0;
                     double size = 0;
-                    while (!cancellationToken.IsCancellationRequested && i < 1000)
+                    while (!cancellationToken.IsCancellationRequested)
                     {
                         rnd.GetBytes(rndBuf);
                         int n = BitConverter.ToUInt16(rndBuf, 0);
@@ -56,9 +63,7 @@ namespace Ssmpnet.LoadTest.Netmq
                         //cancellationToken.WaitHandle.WaitOne(3000);
                         //Console.WriteLine("ppp");
                     }
-                    publisher.Send("*END");
-                    Thread.Sleep(1000);
-
+                    
                     Assert.Ok("Done publishing");
 
                     Assert.Comment("Published {0} messages", i);
@@ -81,45 +86,42 @@ namespace Ssmpnet.LoadTest.Netmq
                     subscriber.Subscribe("*");
                     sw.Start();
 
-                    while (!cancellationToken.IsCancellationRequested)
+                    while (!cancellationToken.IsCancellationRequested && i < 100000)
                     {
                         var m = subscriber.Receive();
                         Interlocked.Increment(ref i);
-                        string message = Encoding.ASCII.GetString(m);
                         Interlocked.Add(ref total, m.Length);
-                        //Console.WriteLine("Received: {0}", message);
-                        if (message == "*END")
-                        {
-                            sw.Stop();
-                            Assert.Ok("Received end message");
-                            cancellationTokenSource.Cancel();
-                        }
                     }
                 }
 
-                cancellationToken.WaitHandle.WaitOne();
+                //cancellationToken.WaitHandle.WaitOne();
                 TimeSpan permsg = TimeSpan.FromTicks(sw.Elapsed.Ticks / i);
 
                 Assert.Ok("Done subscribing");
 
                 Assert.Comment("Received {0} ({1:0.00}MB) messages", Thread.VolatileRead(ref i), ((double)Thread.VolatileRead(ref total)) / (1024 * 1024));
                 Assert.Comment("Time: {0} ({1} per msg)", sw.Elapsed, permsg);
-                Assert.BenchVar("TIME", sw.Elapsed, "permsg");
+                Assert.BenchVar("TIME", permsg, "permsg");
             }
 
             else
             {
                 Plan.Tests(4);
                 Plan.BenchName("NETMQ");
-                Task taskPub = Task.Factory.StartNew(() => Run("pub"));
-                Task taskSub = Task.Factory.StartNew(() => Run("sub"));
-                Task.WaitAll(taskPub, taskSub);
+                var pub = Run("pub");
+                var sub = Run("sub");
+
+                sub.WaitForExit();
+
+                pub.StandardInput.Write("EXIT\n");
+
+                pub.WaitForExit();
 
                 Assert.Ok("Finished tests");
             }
         }
 
-        static void Run(string args)
+        static Process Run(string args)
         {
             var file = Assembly.GetEntryAssembly().GetName().Name + ".exe";
             var process = new Process
@@ -131,6 +133,7 @@ namespace Ssmpnet.LoadTest.Netmq
                     UseShellExecute = false,
                     RedirectStandardError = true,
                     RedirectStandardOutput = true,
+                    RedirectStandardInput = true,
                 }
             };
             process.OutputDataReceived += (s, e) =>
@@ -151,7 +154,7 @@ namespace Ssmpnet.LoadTest.Netmq
             process.BeginErrorReadLine();
             process.BeginOutputReadLine();
 
-            process.WaitForExit();
+            return process;
         }
     }
 }

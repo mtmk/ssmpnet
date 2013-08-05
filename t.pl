@@ -6,10 +6,10 @@ use TAP::Parser;
 my $total_failed = 0;
 
 for my $t (
-['src/Ssmpnet.Test/bin/Debug/ssmpnett.exe', 'tap'],
-['src/Ssmpnet.ResilienceTest/bin/Debug/Ssmpnet.ResilienceTest.exe', ''],
-['src/Ssmpnet.LoadTest/bin/Debug/Ssmpnet.LoadTest.exe', ''],
-['src/Ssmpnet.LoadTest.Netmq/bin/Debug/Ssmpnet.LoadTest.Netmq.exe', ''],
+#['src/Ssmpnet.Test/bin/Release/ssmpnett.exe', 'tap'],
+['src/Ssmpnet.ResilienceTest/bin/Release/Ssmpnet.ResilienceTest.exe', ''],
+['src/Ssmpnet.LoadTest/bin/Release/Ssmpnet.LoadTest.exe', ''],
+#['src/Ssmpnet.LoadTest.Netmq/bin/Release/Ssmpnet.LoadTest.Netmq.exe', ''],
 ){
 	print "\n  _______________________________________\n";
 	print "  Running: " . $t->[0] . "\n\n";

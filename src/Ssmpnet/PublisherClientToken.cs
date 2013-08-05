@@ -30,6 +30,7 @@ namespace Ssmpnet
             _r.Wait();
             _r.Reset();
             Log.Debug(Tag, "Sending message..");
+
             _sender.SetBuffer(message, 0, message.Length);
             if (!Socket.SendAsync(_sender)) CompletedSend(null, _sender);
         }
@@ -70,4 +71,6 @@ namespace Ssmpnet
             socket.Close();
         }
     }
+
+
 }
