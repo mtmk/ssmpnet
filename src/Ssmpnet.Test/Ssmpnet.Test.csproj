@@ -49,11 +49,16 @@
   <ItemGroup>
     <Compile Include="BufferManager.cs" />
     <Compile Include="BufferPool.cs" />
+    <Compile Include="Client.cs" />
+    <Compile Include="Log.cs" />
+    <Compile Include="PacketProtocol.cs" />
     <Compile Include="PacketProtocolTests.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProtoTest.cs" />
+    <Compile Include="Server.cs" />
     <Compile Include="TAP.cs" />
+    <Compile Include="UserToken.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Ssmpnet\Ssmpnet.csproj">

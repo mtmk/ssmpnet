@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 
 namespace Ssmpnet
 {
     public static class PublisherSocket
     {
-        const string Tag = "PublisherSocket";
+        private const string Tag = "PublisherSocket";
 
         public static PublisherToken Start(IPEndPoint endPoint)
         {
@@ -25,7 +23,7 @@ namespace Ssmpnet
             return publisherToken;
         }
 
-        static void CompletedAccept(object sender, SocketAsyncEventArgs e)
+        private static void CompletedAccept(object sender, SocketAsyncEventArgs e)
         {
             var pt = (PublisherToken)e.UserToken;
             if (e.SocketError == SocketError.Success)
@@ -44,7 +42,4 @@ namespace Ssmpnet
             }
         }
     }
-
- 
-
 }

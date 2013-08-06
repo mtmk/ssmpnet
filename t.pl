@@ -4,15 +4,23 @@ use warnings;
 use TAP::Parser;
 
 my $total_failed = 0;
+my $config = 'Debug';
 
 for my $t (
-#['src/Ssmpnet.Test/bin/Release/ssmpnett.exe', 'tap'],
-['src/Ssmpnet.ResilienceTest/bin/Release/Ssmpnet.ResilienceTest.exe', ''],
-['src/Ssmpnet.LoadTest/bin/Release/Ssmpnet.LoadTest.exe', ''],
-#['src/Ssmpnet.LoadTest.Netmq/bin/Release/Ssmpnet.LoadTest.Netmq.exe', ''],
+#["src/Ssmpnet.Test/bin/$config/ssmpnett.exe", 'tap'],
+["src/Ssmpnet.ResilienceTest/bin/$config/Ssmpnet.ResilienceTest.exe", 'multi-sub'],
+["src/Ssmpnet.ResilienceTest/bin/$config/Ssmpnet.ResilienceTest.exe", 'blink-sub'],
+["src/Ssmpnet.ResilienceTest/bin/$config/Ssmpnet.ResilienceTest.exe", 'blink-pub'],
+["src/Ssmpnet.LoadTest/bin/$config/Ssmpnet.LoadTest.exe", ''],
+#["src/Ssmpnet.LoadTest.Netmq/bin/$config/Ssmpnet.LoadTest.Netmq.exe", ''],
 ){
+
+	if ($ARGV[0]) {
+		next if ($t->[0] !~ /$ARGV[0]/i and $t->[1] !~ /$ARGV[0]/i);
+	}
+
 	print "\n  _______________________________________\n";
-	print "  Running: " . $t->[0] . "\n\n";
+	print "  Running: " . $t->[0] . " " . $t->[1] . "\n\n";
 
     my $parser = TAP::Parser->new({
 		    exec => $t

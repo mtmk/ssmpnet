@@ -1,14 +1,15 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 
-namespace Ssmpnet
+namespace Ssmpnet.Test
 {
     public class UserToken
     {
         public Socket Socket;
         public IPEndPoint EndPoint;
         public int Count;
-        public PacketProtocol PacketProtocol;
+
+        internal PacketProtocol PacketProtocol;
 
         public UserToken(Socket socket)
         {

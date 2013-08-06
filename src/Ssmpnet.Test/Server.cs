@@ -2,7 +2,7 @@
 using System.Net.Sockets;
 using System.Text;
 
-namespace Ssmpnet
+namespace Ssmpnet.Test
 {
     public static class Server
     {

@@ -6,15 +6,15 @@ namespace Ssmpnet
 {
     internal class PublisherClientToken
     {
-        const string Tag = "PublisherClientToken";
+        private const string Tag = "PublisherClientToken";
 
-        readonly ManualResetEventSlim _r = new ManualResetEventSlim(true);
+        private readonly PublisherToken _parent;
+        private readonly SocketAsyncEventArgs _sender;
+        private readonly ManualResetEventSlim _r = new ManualResetEventSlim(true);
 
         internal Socket Socket;
         internal IPEndPoint EndPoint;
         internal int Count;
-        readonly PublisherToken _parent;
-        readonly SocketAsyncEventArgs _sender;
 
         internal PublisherClientToken(Socket socket, PublisherToken publisherToken)
         {
@@ -35,7 +35,7 @@ namespace Ssmpnet
             if (!Socket.SendAsync(_sender)) CompletedSend(null, _sender);
         }
 
-        static void CompletedSend(object sender, SocketAsyncEventArgs e)
+        private static void CompletedSend(object sender, SocketAsyncEventArgs e)
         {
             var pct = (PublisherClientToken)e.UserToken;
 
@@ -51,7 +51,7 @@ namespace Ssmpnet
             pct._r.Set();
         }
 
-        static void Close(PublisherClientToken pct)
+        private static void Close(PublisherClientToken pct)
         {
             Log.Debug(Tag, "Closing socket");
 
@@ -71,6 +71,4 @@ namespace Ssmpnet
             socket.Close();
         }
     }
-
-
 }

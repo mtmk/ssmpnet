@@ -3,7 +3,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-namespace Ssmpnet
+namespace Ssmpnet.Test
 {
     public static class Client
     {

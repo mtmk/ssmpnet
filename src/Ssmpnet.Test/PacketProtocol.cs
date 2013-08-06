@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Ssmpnet
+namespace Ssmpnet.Test
 {
     // Original source: http://blog.stephencleary.com/2009/04/sample-code-length-prefix-message.html
     internal class PacketProtocol

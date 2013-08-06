@@ -15,7 +15,7 @@ namespace Ssmpnet.Test
 
         }
 
-        public void MessageSplit(PacketProtocol packet)
+        internal void MessageSplit(PacketProtocol packet)
         {
             int numMessages = 0;
             packet.MessageArrived += (message) =>
@@ -49,7 +49,7 @@ namespace Ssmpnet.Test
             Assert.AreEqual(1, numMessages);
         }
 
-        public void MultipleMessages(PacketProtocol packet)
+        internal void MultipleMessages(PacketProtocol packet)
         {
             int numMessages = 0;
             packet.MessageArrived += (message) =>

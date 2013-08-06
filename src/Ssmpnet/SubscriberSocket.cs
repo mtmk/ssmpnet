@@ -7,8 +7,8 @@ namespace Ssmpnet
 {
     public static class SubscriberSocket
     {
-        const string Tag = "SubscriberSocket";
-
+        private static Timer _retry;
+        private const string Tag = "SubscriberSocket";
         private const int BufferSize = 64 * 1024;
 
         public static void Start(IPEndPoint endPoint, Action<byte[]> receiver, Action connected = null)
@@ -22,7 +22,7 @@ namespace Ssmpnet
             if (!socket.ConnectAsync(e)) CompletedConnect(null, e);
         }
 
-        static void CompletedConnect(object sender, SocketAsyncEventArgs e)
+        private static void CompletedConnect(object sender, SocketAsyncEventArgs e)
         {
             var st = (SubscriberToken)e.UserToken;
             if (e.SocketError == SocketError.Success)
@@ -50,16 +50,11 @@ namespace Ssmpnet
 
         private static void Retry(SubscriberToken st)
         {
-            Socket socket = st.Socket;
-            IPEndPoint endPoint = st.EndPoint;
-            Action<byte[]> receiver = st.Receiver;
-            Action connected = st.Connected;
-            Thread.Sleep(3 * 1000);
-
             Log.Error(Tag, "Retry..");
+            Close(st.Socket);
 
-            Close(socket);
-            Start(endPoint, receiver, connected);
+            // Try to re-connect in 3 seconds
+            _retry = new Timer(_ => Start(st.EndPoint, st.Receiver, st.Connected), null, 3000, Timeout.Infinite);
         }
 
         private static void Close(Socket socket)
@@ -77,7 +72,7 @@ namespace Ssmpnet
             socket.Close();
         }
 
-        static void CompletedReceive(object sender, SocketAsyncEventArgs e)
+        private static void CompletedReceive(object sender, SocketAsyncEventArgs e)
         {
             var st = (SubscriberToken)e.UserToken;
             if (e.SocketError == SocketError.Success)

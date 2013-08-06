@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
@@ -73,7 +74,7 @@ namespace Ssmpnet.ResilienceTest
                 Assert.Ok(msgChk, "Message check");
             }
 
-            else
+            else if(args.Length == 1 && args[0] == "multi-sub")
             {
                 Plan.Tests(11);
 
@@ -100,9 +101,59 @@ namespace Ssmpnet.ResilienceTest
                 sub3.WaitForExit();
 
                 Assert.Ok("Finished tests");
-                //cancellationToken.WaitHandle.WaitOne();
-                //Process pub = Process.Start(Assembly.GetEntryAssembly().GetName().Name + ".exe", "pub");
-                //Process sub = Process.Start(Assembly.GetEntryAssembly().GetName().Name + ".exe", "sub");
+            }
+            
+            else if(args.Length == 1 && args[0] == "blink-sub")
+            {
+                Plan.Tests(92);
+
+                Process pub = Run("pub");
+
+                Thread.Sleep(2000);
+
+                var tasks = new List<Task>();
+
+                for (int i = 0; i < 10; i++)
+                    tasks.Add(Task.Factory.StartNew(() =>
+                                                    {
+                                                        for (int j = 0; j < 3; j++)
+                                                        {
+                                                            Process sub = Run("sub");
+                                                            Thread.Sleep(3000);
+                                                            sub.StandardInput.Write("EXIT\n");
+                                                            sub.WaitForExit();
+                                                        }
+                                                    }, cancellationToken));
+
+                Task.WaitAll(tasks.ToArray());
+
+                Thread.Sleep(2000);
+                pub.StandardInput.Write("EXIT\n");
+
+                pub.WaitForExit();
+
+                Assert.Ok("Finished tests");
+            }
+            
+            else if(args.Length == 1 && args[0] == "blink-pub")
+            {
+                Plan.Tests(9);
+
+                Process sub = Run("sub");
+
+                for (int i = 0; i < 5; i++)
+                {
+                    Process pub = Run("pub");
+                    Thread.Sleep(3000);
+                    pub.StandardInput.Write("EXIT\n");
+                    pub.WaitForExit();
+                    Thread.Sleep(1000);
+                }
+
+                sub.StandardInput.Write("EXIT\n");
+                sub.WaitForExit();
+
+                Assert.Ok("Finished tests");
             }
         }
 

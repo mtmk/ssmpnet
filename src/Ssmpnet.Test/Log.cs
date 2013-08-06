@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Threading;
 
-namespace Ssmpnet
+namespace Ssmpnet.Test
 {
     internal static class Log
     {

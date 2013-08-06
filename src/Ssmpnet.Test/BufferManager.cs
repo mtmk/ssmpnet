@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Net.Sockets;
 
-namespace Ssmpnet
+namespace Ssmpnet.Test
 {
     // http://msdn.microsoft.com/en-us/library/bb517542(v=vs.100).aspx
     // This class creates a single large buffer which can be divided up 
