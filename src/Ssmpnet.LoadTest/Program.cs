@@ -32,11 +32,10 @@ namespace Ssmpnet.LoadTest
                 Thread.Sleep(1000); // warmup
                 int i = 0;
                 double size = 0;
-                while (!cancellationToken.IsCancellationRequested && i < 100000)
+                while (!cancellationToken.IsCancellationRequested && i < 100*1000)
                 {
                     rnd.GetBytes(rndBuf);
                     int n = BitConverter.ToUInt16(rndBuf, 0);
-                    n = 1000;
                     byte[] message = Encoding.ASCII.GetBytes("Publishing message: " + i++ + new string('x', n));
                     pub.Publish(message);
                     size += message.Length;
@@ -56,7 +55,7 @@ namespace Ssmpnet.LoadTest
                 var sw = new Stopwatch();
 
                 int i = 0;
-                int total = 0;
+                long total = 0;
                 
                 SubscriberSocket.Start(new IPEndPoint(IPAddress.Loopback, 56789),
                     m =>
@@ -74,13 +73,19 @@ namespace Ssmpnet.LoadTest
                     }, sw.Start);
 
                 cancellationToken.WaitHandle.WaitOne();
-                TimeSpan permsg = TimeSpan.FromTicks(sw.Elapsed.Ticks/i);
+                
+                var count = Thread.VolatileRead(ref i);
+                var permsg = TimeSpan.FromTicks(sw.Elapsed.Ticks/count);
+                var totalBytes = (double)Thread.VolatileRead(ref total);
+                var totalMb = totalBytes / (1024 * 1024);
+                var mbpersec = totalMb/sw.Elapsed.Seconds;
 
                 Assert.Ok("Done subscribing");
 
-                Assert.Comment("Received {0} ({1:0.00}MB) messages", Thread.VolatileRead(ref i), ((double)Thread.VolatileRead(ref total)) / (1024 * 1024));
+                Assert.Comment("Received {0} ({1:0.00}MB) messages", count, totalMb);
                 Assert.Comment("Time: {0} ({1} per msg)", sw.Elapsed, permsg);
                 Assert.BenchVar("TIME", permsg, "permsg");
+                Assert.BenchVar("TP", mbpersec, "mbpersec");
             }
 
             else
