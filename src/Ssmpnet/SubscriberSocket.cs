@@ -15,7 +15,7 @@ namespace Ssmpnet
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-            var st = new SubscriberToken(socket, endPoint) {Receiver = receiver, Connected = connected};
+            var st = new SubscriberToken(socket, endPoint, receiver) {Connected = connected};
             var e = new SocketAsyncEventArgs { UserToken = st, RemoteEndPoint = endPoint };
             e.Completed += CompletedConnect;
 
@@ -30,11 +30,7 @@ namespace Ssmpnet
                 if (st.Connected != null)
                     st.Connected();
 
-                var sst = new SubscriberToken(st.Socket, st.EndPoint)
-                          {
-                              Receiver = st.Receiver,
-                              PacketProtocol = new PacketProtocol{MessageArrived = st.Receiver}
-                          };
+                var sst = new SubscriberToken(st.Socket, st.EndPoint, st.Receiver);
                 var se = new SocketAsyncEventArgs { UserToken = sst };
                 var buffer = new byte[BufferSize];
                 se.SetBuffer(buffer, 0, BufferSize);
@@ -54,6 +50,7 @@ namespace Ssmpnet
             Close(st.Socket);
 
             // Try to re-connect in 3 seconds
+            if (_retry != null) _retry.Dispose();
             _retry = new Timer(_ => Start(st.EndPoint, st.Receiver, st.Connected), null, 3000, Timeout.Infinite);
         }
 
@@ -77,7 +74,7 @@ namespace Ssmpnet
             var st = (SubscriberToken)e.UserToken;
             if (e.SocketError == SocketError.Success)
             {
-                st.PacketProtocol.DataReceived(e.Buffer, 0, e.BytesTransferred);
+                st.Enqueue(e.Buffer, 0, e.BytesTransferred);
                 e.SetBuffer(0, e.Buffer.Length);
                 if (!st.Socket.ReceiveAsync(e)) CompletedReceive(null, e);
             }

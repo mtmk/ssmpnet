@@ -11,8 +11,7 @@ namespace Ssmpnet
 
         internal static byte[] WrapMessage(byte[] msg)
         {
-            byte[] len = BitConverter.GetBytes(msg.Length);
-            
+            var len = BitConverter.GetBytes(msg.Length);
             var buffer = new byte[len.Length + msg.Length];
 
             Buffer.BlockCopy(len, 0, buffer, 0, len.Length);
@@ -24,13 +23,6 @@ namespace Ssmpnet
         internal Action<byte[]> MessageArrived { get; set; }
 
         internal Action KeepAlive { get; set; }
-
-        internal void DataReceived(byte[] buffer, int offset, int count)
-        {
-            var bytes = new byte[count];
-            Buffer.BlockCopy(buffer, offset, bytes, 0, count);
-            DataReceived(bytes);
-        }
 
         internal void DataReceived(byte[] data)
         {
