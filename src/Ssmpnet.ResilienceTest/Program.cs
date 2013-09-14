@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Reflection;
-using System.Runtime.Remoting;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,10 +40,11 @@ namespace Ssmpnet.ResilienceTest
                 double size = 0;
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    byte[] message = Encoding.ASCII.GetBytes("Publishing message: " + i++);
+                    byte[] message = Encoding.ASCII.GetBytes("Publishing message: " + i++ + new string('x', 1024 * 1024));
                     pub.Publish(message);
                     size += message.Length;
-                    cancellationToken.WaitHandle.WaitOne(100);
+                    if (i%1000 == 0) Assert.Comment("Publisher sent {0} messages so far..", i);
+                    cancellationToken.WaitHandle.WaitOne(1);
                 }
 
                 Assert.Ok("Done publishing");
@@ -62,6 +62,7 @@ namespace Ssmpnet.ResilienceTest
                     m =>
                     {
                         Interlocked.Increment(ref i);
+                        if (i % 1000 == 0) Assert.Comment("Subscriber received {0} messages so far..", i);
                         string message = Encoding.ASCII.GetString(m);
                         if (!message.StartsWith("Publishing message:"))
                             msgChk = false;
@@ -155,11 +156,33 @@ namespace Ssmpnet.ResilienceTest
 
                 Assert.Ok("Finished tests");
             }
+            
+            else if(args.Length == 1 && args[0] == "loop")
+            {
+                Assert.Comment("Starting loop");
+
+                Process pub = Run("pub");
+                Process sub = Run("sub");
+
+                cancellationToken.WaitHandle.WaitOne();
+
+                pub.StandardInput.Write("EXIT\n");
+                sub.StandardInput.Write("EXIT\n");
+
+                pub.WaitForExit();
+                sub.WaitForExit();
+
+                Assert.Comment("Finished loop");
+            }
         }
 
         static Process Run(string args)
         {
-            var file = Assembly.GetEntryAssembly().GetName().Name + ".exe";
+            string name = Assembly.GetEntryAssembly().GetName().Name;
+            var file1 = name + ".exe";
+            var file = name + "." + args + ".exe";
+            File.Copy(file1, file, true);
+
             var process = new Process
             {
                 StartInfo = new ProcessStartInfo
