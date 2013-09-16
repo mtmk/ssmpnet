@@ -41,9 +41,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Ssmpnet.Test\TAP.cs">
-      <Link>TAP.cs</Link>
-    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -51,6 +48,10 @@
     <ProjectReference Include="..\Ssmpnet\Ssmpnet.csproj">
       <Project>{6bae8331-3ea6-4a5d-be25-d580b8a2afb9}</Project>
       <Name>Ssmpnet</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TAP\TAP.csproj">
+      <Project>{3c777fba-88ac-4cad-afe7-1c03906423f8}</Project>
+      <Name>TAP</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

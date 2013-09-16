@@ -6,10 +6,11 @@ using System.Threading;
 
 namespace Ssmpnet
 {
-    internal class SubscriberToken
+    public class SubscriberToken
     {
         private readonly PacketProtocol _packetProtocol;
         private readonly BlockingCollection<byte[]> _q = new BlockingCollection<byte[]>(1000);
+        private readonly CancellationTokenSource _c = new CancellationTokenSource();
         
         internal Socket Socket;
         
@@ -19,20 +20,41 @@ namespace Ssmpnet
         
         internal Action Connected;
 
+        internal CancellationToken CancellationToken;
+
         internal SubscriberToken(Socket socket, IPEndPoint endPoint, Action<byte[]> receiver)
         {
             Socket = socket;
             EndPoint = endPoint;
             Receiver = receiver;
             _packetProtocol = new PacketProtocol { MessageArrived = receiver };
+            CancellationToken = _c.Token;
             ThreadPool.QueueUserWorkItem(ConsumeQueue);
+        }
+
+        public void Close()
+        {
+            try
+            {
+                _c.Cancel();
+            }
+            catch (ObjectDisposedException) { }
+            SubscriberSocket.Close(Socket);
         }
 
         internal void Enqueue(byte[] buffer, int offset, int count)
         {
+            // TODO: Use buffer pool
             var bytes = new byte[count];
             Buffer.BlockCopy(buffer, offset, bytes, 0, count);
-            _q.Add(bytes);
+
+            try
+            {
+                _q.TryAdd(bytes, 2, CancellationToken);
+            }
+            catch (ObjectDisposedException) { }
+            catch (InvalidOperationException) { }
+            catch (OperationCanceledException) { }
         }
 
         private void ConsumeQueue(object state)

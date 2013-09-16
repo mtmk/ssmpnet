@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{D7D11E10-F57B-40EF-A027-32A27C42BDDD}</ProjectGuid>
+    <ProjectGuid>{6F6475BE-387F-4C6F-9C8E-8C99D3D8AFB5}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Ssmpnet.LoadTest.Clrmq</RootNamespace>
-    <AssemblyName>Ssmpnet.LoadTest.Clrmq</AssemblyName>
+    <RootNamespace>Ssmpnet.Test.Simple</RootNamespace>
+    <AssemblyName>Ssmpnet.Test.Simple</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -21,6 +21,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -45,6 +46,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Ssmpnet\Ssmpnet.csproj">
+      <Project>{6bae8331-3ea6-4a5d-be25-d580b8a2afb9}</Project>
+      <Name>Ssmpnet</Name>
+    </ProjectReference>
     <ProjectReference Include="..\TAP\TAP.csproj">
       <Project>{3c777fba-88ac-4cad-afe7-1c03906423f8}</Project>
       <Name>TAP</Name>

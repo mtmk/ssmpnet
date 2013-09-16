@@ -11,7 +11,7 @@ namespace Ssmpnet
         private const string Tag = "SubscriberSocket";
         private const int BufferSize = 64 * 1024;
 
-        public static void Start(IPEndPoint endPoint, Action<byte[]> receiver, Action connected = null)
+        public static SubscriberToken Start(IPEndPoint endPoint, Action<byte[]> receiver, Action connected = null)
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
@@ -20,6 +20,8 @@ namespace Ssmpnet
             e.Completed += CompletedConnect;
 
             if (!socket.ConnectAsync(e)) CompletedConnect(null, e);
+
+            return st;
         }
 
         private static void CompletedConnect(object sender, SocketAsyncEventArgs e)
@@ -30,12 +32,11 @@ namespace Ssmpnet
                 if (st.Connected != null)
                     st.Connected();
 
-                var sst = new SubscriberToken(st.Socket, st.EndPoint, st.Receiver);
-                var se = new SocketAsyncEventArgs { UserToken = sst };
                 var buffer = new byte[BufferSize];
-                se.SetBuffer(buffer, 0, BufferSize);
-                se.Completed += CompletedReceive;
-                if (!st.Socket.ReceiveAsync(se)) CompletedReceive(null, se);
+                e.SetBuffer(buffer, 0, BufferSize);
+                e.Completed -= CompletedConnect;
+                e.Completed += CompletedReceive;
+                Receive(st, e);
             }
             else
             {
@@ -46,7 +47,7 @@ namespace Ssmpnet
 
         private static void Retry(SubscriberToken st)
         {
-            Log.Error(Tag, "Retry..");
+            Log.Info(Tag, "Retry..");
             Close(st.Socket);
 
             // Try to re-connect in 3 seconds
@@ -54,29 +55,44 @@ namespace Ssmpnet
             _retry = new Timer(_ => Start(st.EndPoint, st.Receiver, st.Connected), null, 3000, Timeout.Infinite);
         }
 
-        private static void Close(Socket socket)
+        internal static void Close(Socket socket)
         {
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontLinger, true);
             try
             {
                 if (socket.Connected)
-                    socket.Shutdown(SocketShutdown.Send);
+                    socket.Shutdown(SocketShutdown.Both);
             }
             catch (SocketException e)
             {
-                Log.Debug(Tag, "socket.Shutdown: {0}", e);
+                Log.Debug(Tag, "socket.Shutdown SocketErrorCode: {0}", e.SocketErrorCode);
             }
+            catch (ObjectDisposedException) { }
+
             socket.Close();
+        }
+
+        private static void Receive(SubscriberToken st, SocketAsyncEventArgs e)
+        {
+            try
+            {
+                if (!st.Socket.ReceiveAsync(e)) CompletedReceive(null, e);
+            }
+            catch (ObjectDisposedException) { Retry(st); }
+            catch (SocketException) { Retry(st); }
         }
 
         private static void CompletedReceive(object sender, SocketAsyncEventArgs e)
         {
             var st = (SubscriberToken)e.UserToken;
+            
+            if (st.CancellationToken.IsCancellationRequested)
+                    return;
+
             if (e.SocketError == SocketError.Success)
             {
                 st.Enqueue(e.Buffer, 0, e.BytesTransferred);
                 e.SetBuffer(0, e.Buffer.Length);
-                if (!st.Socket.ReceiveAsync(e)) CompletedReceive(null, e);
+                Receive(st, e);
             }
             else
             {

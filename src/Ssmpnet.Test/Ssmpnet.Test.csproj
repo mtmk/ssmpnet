@@ -57,13 +57,16 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProtoTest.cs" />
     <Compile Include="Server.cs" />
-    <Compile Include="TAP.cs" />
     <Compile Include="UserToken.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Ssmpnet\Ssmpnet.csproj">
       <Project>{6BAE8331-3EA6-4A5D-BE25-D580B8A2AFB9}</Project>
       <Name>Ssmpnet</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TAP\TAP.csproj">
+      <Project>{3c777fba-88ac-4cad-afe7-1c03906423f8}</Project>
+      <Name>TAP</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
