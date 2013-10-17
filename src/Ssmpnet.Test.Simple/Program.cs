@@ -25,59 +25,47 @@ namespace Ssmpnet.LoadTest
 
             var taskPub = Task.Factory.StartNew(() =>
             {
+                Assert.Comment("Starting pub");
                 var pub = PublisherSocket.Start(new IPEndPoint(IPAddress.Any, 56789));
-                Thread.Sleep(1000); // warmup
-                int i = 0;
-                while (!cancellationToken.IsCancellationRequested && i < 100 * 1000)
-                {
-                    byte[] message = Encoding.ASCII.GetBytes("Publishing message: " + i++ + new string('x', 1000));
-                    pub.Publish(message);
-                    //cancellationToken.WaitHandle.WaitOne(10);
-                }
-                pub.Publish(Encoding.ASCII.GetBytes("END"));
                 Thread.Sleep(1000);
+                int i = 0;
+                double size = 0;
+                byte[] message = Encoding.ASCII.GetBytes("Publishing message: " + i++ + new string('x', 1024 * 1024));
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    pub.Publish(message);
+                    size += message.Length;
+                    i++;
+                    if (i % 100 == 0) Assert.Comment("Publisher sent {0} messages so far..", i);
+                    cancellationToken.WaitHandle.WaitOne(10);
+                }
 
                 Assert.Ok("Done publishing");
-
-                Assert.Comment("Published {0} messages", i);
             });
 
             var taskSub = Task.Factory.StartNew(() =>
             {
+                Assert.Comment("Starting sub");
                 var sw = new Stopwatch();
 
                 int i = 0;
-                long total = 0;
+                bool msgChk = true;
 
                 SubscriberSocket.Start(new IPEndPoint(IPAddress.Loopback, 56789),
                     m =>
                     {
                         Interlocked.Increment(ref i);
-                        string message = Encoding.ASCII.GetString(m);
-                        Interlocked.Add(ref total, m.Length);
-                        //Console.WriteLine("Received: {0}", message);
-                        if (message == "END")
-                        {
-                            sw.Stop();
-                            Assert.Ok("Received end message");
-                            cancellationTokenSource.Cancel();
-                        }
+                        if (i % 100 == 0) Assert.Comment("Subscriber received {0} messages so far..", i);
+                        //string message = Encoding.ASCII.GetString(m);
+                        //if (!message.StartsWith("Publishing message:"))
+                        //    msgChk = false;
                     }, sw.Start);
 
                 cancellationToken.WaitHandle.WaitOne();
 
-                var count = Thread.VolatileRead(ref i);
-                var permsg = TimeSpan.FromTicks(sw.Elapsed.Ticks / count);
-                var totalBytes = (double)Thread.VolatileRead(ref total);
-                var totalMb = totalBytes / (1024 * 1024);
-                var mbpersec = totalMb / sw.Elapsed.Seconds;
-
                 Assert.Ok("Done subscribing");
-
-                Assert.Comment("Received {0} ({1:0.00}MB) messages", count, totalMb);
-                Assert.Comment("Time: {0} ({1} per msg)", sw.Elapsed, permsg);
-                Assert.BenchVar("TIME", permsg, "permsg");
-                Assert.BenchVar("TP", mbpersec, "mbpersec");
+                Assert.Ok(i > 10, "Received more than 10 msg - #" + i);
+                Assert.Ok(msgChk, "Message check");
             });
 
             Task.WaitAll(taskPub, taskSub);
