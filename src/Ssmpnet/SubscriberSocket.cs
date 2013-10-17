@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 
 namespace Ssmpnet
@@ -11,13 +12,14 @@ namespace Ssmpnet
         private const string Tag = "SubscriberSocket";
         private const int BufferSize = 64 * 1024;
 
-        public static SubscriberToken Start(IPEndPoint endPoint, Action<byte[]> receiver, Action connected = null)
+        public static SubscriberToken Start(IPEndPoint endPoint, Action<byte[], int, int> receiver, string topics = null, Action connected = null)
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-            var st = new SubscriberToken(socket, endPoint, receiver) {Connected = connected};
+            var st = new SubscriberToken(socket, endPoint, receiver) { Connected = connected, Topics = topics };
             var e = new SocketAsyncEventArgs { UserToken = st, RemoteEndPoint = endPoint };
-            e.Completed += CompletedConnect;
+            var buf = Encoding.UTF8.GetBytes(string.IsNullOrEmpty(topics) ? "*" : topics);
+            e.SetBuffer(buf, 0, buf.Length); e.Completed += CompletedConnect;
 
             if (!socket.ConnectAsync(e)) CompletedConnect(null, e);
 
@@ -32,11 +34,15 @@ namespace Ssmpnet
                 if (st.Connected != null)
                     st.Connected();
 
-                var buffer = new byte[BufferSize];
+                var sst = new SubscriberToken(st.Socket, st.EndPoint, st.Receiver)
+                {
+                    PacketProtocol = new PacketProtocol { MessageArrived = st.Receiver }
+                };
+                var se = new SocketAsyncEventArgs { UserToken = sst }; var buffer = new byte[BufferSize];
                 e.SetBuffer(buffer, 0, BufferSize);
-                e.Completed -= CompletedConnect;
-                e.Completed += CompletedReceive;
-                Receive(st, e);
+                se.SetBuffer(buffer, 0, BufferSize);
+                se.Completed += CompletedReceive;
+                if (!st.Socket.ReceiveAsync(se)) CompletedReceive(null, se);
             }
             else
             {
@@ -52,7 +58,7 @@ namespace Ssmpnet
 
             // Try to re-connect in 3 seconds
             if (_retry != null) _retry.Dispose();
-            _retry = new Timer(_ => Start(st.EndPoint, st.Receiver, st.Connected), null, 3000, Timeout.Infinite);
+            _retry = new Timer(_ => Start(st.EndPoint, st.Receiver, st.Topics, st.Connected), null, 3000, Timeout.Infinite);
         }
 
         internal static void Close(Socket socket)

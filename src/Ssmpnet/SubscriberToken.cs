@@ -8,26 +8,28 @@ namespace Ssmpnet
 {
     public class SubscriberToken
     {
-        private readonly PacketProtocol _packetProtocol;
-        private readonly BlockingCollection<byte[]> _q = new BlockingCollection<byte[]>(1000);
+        internal PacketProtocol PacketProtocol;
+        private readonly BlockingCollection<Buf> _q = new BlockingCollection<Buf>(1000);
         private readonly CancellationTokenSource _c = new CancellationTokenSource();
-        
+
+        internal string Topics;
+
         internal Socket Socket;
         
         internal IPEndPoint EndPoint;
 
-        internal Action<byte[]> Receiver { get; set; }
+        internal Action<byte[], int, int> Receiver { get; set; }
         
         internal Action Connected;
 
         internal CancellationToken CancellationToken;
 
-        internal SubscriberToken(Socket socket, IPEndPoint endPoint, Action<byte[]> receiver)
+        internal SubscriberToken(Socket socket, IPEndPoint endPoint, Action<byte[], int, int> receiver)
         {
             Socket = socket;
             EndPoint = endPoint;
             Receiver = receiver;
-            _packetProtocol = new PacketProtocol { MessageArrived = receiver };
+            PacketProtocol = new PacketProtocol { MessageArrived = receiver };
             CancellationToken = _c.Token;
             ThreadPool.QueueUserWorkItem(ConsumeQueue);
         }
@@ -44,13 +46,13 @@ namespace Ssmpnet
 
         internal void Enqueue(byte[] buffer, int offset, int count)
         {
-            // TODO: Use buffer pool
-            var bytes = new byte[count];
+            var bytes = BufferPool.Alloc(count);
+
             Buffer.BlockCopy(buffer, offset, bytes, 0, count);
 
             try
             {
-                _q.TryAdd(bytes, 2, CancellationToken);
+                _q.TryAdd(new Buf{Buffer = bytes, Size = count}, 2, CancellationToken);
             }
             catch (ObjectDisposedException) { }
             catch (InvalidOperationException) { }
@@ -61,7 +63,8 @@ namespace Ssmpnet
         {
             foreach (var buffer in _q.GetConsumingEnumerable())
             {
-                _packetProtocol.DataReceived(buffer);
+                PacketProtocol.DataReceived(buffer.Buffer, buffer.Offset, buffer.Size);
+                BufferPool.Free(buffer.Buffer);
             }
         }
     }

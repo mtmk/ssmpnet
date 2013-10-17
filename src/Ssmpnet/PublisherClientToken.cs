@@ -1,26 +1,36 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
 namespace Ssmpnet
 {
+    internal class Buf
+    {
+        public byte[] Buffer;
+        public int Offset;
+        public int Size;
+    }
+
     internal class PublisherClientToken
     {
         private const string Tag = "PublisherClientToken";
 
         private readonly PublisherToken _parent;
         private readonly SocketAsyncEventArgs _sender;
+        private Buf _buf;
+        private readonly string[] _topics;
         private readonly ManualResetEventSlim _r = new ManualResetEventSlim(true);
-        private readonly BlockingCollection<byte[]> _q = new BlockingCollection<byte[]>(1000);
+        private readonly BlockingCollection<Buf> _q = new BlockingCollection<Buf>(1000);
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private readonly CancellationToken _cancellationToken;
         internal Socket Socket;
         internal IPEndPoint EndPoint;
         internal int Count;
 
-        internal PublisherClientToken(Socket socket, PublisherToken publisherToken)
+        internal PublisherClientToken(Socket socket, PublisherToken publisherToken, string topics)
         {
             Socket = socket;
             _sender = new SocketAsyncEventArgs();
@@ -28,6 +38,10 @@ namespace Ssmpnet
             _sender.UserToken = this;
             _parent = publisherToken;
             _cancellationToken = _cancellationTokenSource.Token;
+
+            if (!string.IsNullOrEmpty(topics))
+                _topics = topics.Split(',');
+
             ThreadPool.QueueUserWorkItem(Sender);
         }
 
@@ -42,26 +56,34 @@ namespace Ssmpnet
             }
             catch (ObjectDisposedException) { }
             catch (OperationCanceledException) { }
+
+            Close(this);
         }
 
-        internal void Send(byte[] message)
+        internal void Send(string topic, Buf message)
         {
+            if (topic != null && _topics != null && !IsForTopic(topic)) return;
+
             try
             {
                 _q.TryAdd(message, 2, _cancellationToken);
             }
             catch (ObjectDisposedException) { }
-            catch (InvalidOperationException) { }
             catch (OperationCanceledException) { }
         }
 
-        internal void SendInternal(byte[] message)
+        private bool IsForTopic(string topic)
+        {
+            return _topics.Any(t => t == topic || t == "*");
+        }
+
+        private void SendInternal(Buf message)
         {
             _r.Wait();
             _r.Reset();
             Log.Debug(Tag, "Sending message..");
-
-            _sender.SetBuffer(message, 0, message.Length);
+            _buf = message;
+            _sender.SetBuffer(message.Buffer, message.Offset, message.Size);
             if (!Socket.SendAsync(_sender)) CompletedSend(null, _sender);
         }
 
@@ -70,6 +92,9 @@ namespace Ssmpnet
             var pct = (PublisherClientToken)e.UserToken;
 
             Log.Debug(Tag, "Completed send: {0}", e.SocketError);
+
+            BufferPool.Free(pct._buf.Buffer);
+            pct._buf = null;
 
             if (e.SocketError == SocketError.Success)
             {
@@ -89,15 +114,14 @@ namespace Ssmpnet
             pct._parent.RemoveSubscriber(socket);
             pct._cancellationTokenSource.Cancel();
 
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontLinger, true);
             try
             {
                 if (socket.Connected)
-                    socket.Shutdown(SocketShutdown.Send);
+                    socket.Shutdown(SocketShutdown.Both);
             }
             catch (SocketException e)
             {
-                Log.Debug(Tag, "Error in shutdown: {0}", e.Message);
+                Log.Debug(Tag, "Error in shutdown: SocketErrorCode: {0}", e.SocketErrorCode);
             }
             socket.Close();
         }
