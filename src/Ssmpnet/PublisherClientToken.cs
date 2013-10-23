@@ -18,12 +18,13 @@ namespace Ssmpnet
     {
         private const string Tag = "PublisherClientToken";
 
+        private readonly BufferPool _bufferPool = new BufferPool();
         private readonly PublisherToken _parent;
         private readonly SocketAsyncEventArgs _sender;
         private Buf _buf;
         private readonly string[] _topics;
         private readonly ManualResetEventSlim _r = new ManualResetEventSlim(true);
-        private readonly BlockingCollection<Buf> _q = new BlockingCollection<Buf>(1000);
+        private readonly BlockingCollection<Buf> _q = new BlockingCollection<Buf>(100);
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private readonly CancellationToken _cancellationToken;
         internal Socket Socket;
@@ -60,13 +61,16 @@ namespace Ssmpnet
             Close(this);
         }
 
-        internal void Send(string topic, Buf message)
+        internal void Send(string topic, byte[] message)
         {
             if (topic != null && _topics != null && !IsForTopic(topic)) return;
 
+            int len;
+            byte[] wrapMessage = PacketProtocol.WrapMessage(_bufferPool, message, out len);
+
             try
             {
-                _q.TryAdd(message, 2, _cancellationToken);
+                _q.TryAdd(new Buf { Buffer = wrapMessage, Size = len }, 2, _cancellationToken);
             }
             catch (ObjectDisposedException) { }
             catch (OperationCanceledException) { }
@@ -87,14 +91,19 @@ namespace Ssmpnet
             if (!Socket.SendAsync(_sender)) CompletedSend(null, _sender);
         }
 
+        private void FreeBuffer()
+        {
+            _bufferPool.Free(_buf.Buffer);
+            _buf = null;
+        }
+
         private static void CompletedSend(object sender, SocketAsyncEventArgs e)
         {
             var pct = (PublisherClientToken)e.UserToken;
 
             Log.Debug(Tag, "Completed send: {0}", e.SocketError);
 
-            BufferPool.Free(pct._buf.Buffer);
-            pct._buf = null;
+            pct.FreeBuffer();
 
             if (e.SocketError == SocketError.Success)
             {

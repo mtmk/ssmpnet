@@ -37,13 +37,13 @@ namespace Ssmpnet
         {
             var subscribers = _subs.Values;
             Log.Debug(Tag, "Publishing message..#{0}", subscribers.Count);
-            int len;
-            byte[] wrapMessage = PacketProtocol.WrapMessage(message, out len);
+
+
             foreach (var s in _subs)
             {
                 try
                 {
-                    s.Value.Send(topic, new Buf { Buffer = wrapMessage, Size = len });
+                    s.Value.Send(topic, message);
                 }
                 catch (ObjectDisposedException)
                 {

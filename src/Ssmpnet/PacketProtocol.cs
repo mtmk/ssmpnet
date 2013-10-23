@@ -9,14 +9,20 @@ namespace Ssmpnet
         private byte[] _dataBuffer;
         private int _bytesReceived;
         private int _length;
+        private readonly BufferPool _bufferPool = new BufferPool();
 
         internal static byte[] WrapMessage(byte[] msg, out int length)
+        {
+            return WrapMessage(new BufferPool(), msg, out length);
+        }
+
+        internal static byte[] WrapMessage(BufferPool bufferPool, byte[] msg, out int length)
         {
             var len = BitConverter.GetBytes(msg.Length);
 
             //var buffer = new byte[len.Length + msg.Length];
             length = len.Length + msg.Length;
-            var buffer = BufferPool.Alloc(length);
+            var buffer = bufferPool.Alloc(length);
             
             Buffer.BlockCopy(len, 0, buffer, 0, len.Length);
             Buffer.BlockCopy(msg, 0, buffer, len.Length, msg.Length);
@@ -86,7 +92,7 @@ namespace Ssmpnet
             {
                 // Create the data buffer and start reading into it
                 //_dataBuffer = new byte[length];
-                _dataBuffer = BufferPool.Alloc(_length);
+                _dataBuffer = _bufferPool.Alloc(_length);
 
                 _bytesReceived = 0;
             }
@@ -101,7 +107,7 @@ namespace Ssmpnet
             if (MessageArrived != null)
                 MessageArrived(_dataBuffer, 0, _length);
 
-            BufferPool.Free(_dataBuffer);
+            _bufferPool.Free(_dataBuffer);
             _dataBuffer = null;
             _bytesReceived = 0;
         }

@@ -58,10 +58,10 @@ namespace Ssmpnet.LoadTest
                 long total = 0;
                 
                 SubscriberSocket.Start(new IPEndPoint(IPAddress.Loopback, 56789),
-                    m =>
+                    (m,o,c) =>
                     {
                         Interlocked.Increment(ref i);
-                        string message = Encoding.ASCII.GetString(m);
+                        string message = Encoding.ASCII.GetString(m,o,c);
                         Interlocked.Add(ref total, m.Length);
                         //Console.WriteLine("Received: {0}", message);
                         if (message == "END")
@@ -70,7 +70,7 @@ namespace Ssmpnet.LoadTest
                             Assert.Ok("Received end message");
                             cancellationTokenSource.Cancel();
                         }
-                    }, sw.Start);
+                    }, null, sw.Start);
 
                 cancellationToken.WaitHandle.WaitOne();
                 

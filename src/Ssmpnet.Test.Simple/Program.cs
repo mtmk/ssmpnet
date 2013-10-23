@@ -52,14 +52,14 @@ namespace Ssmpnet.LoadTest
                 bool msgChk = true;
 
                 SubscriberSocket.Start(new IPEndPoint(IPAddress.Loopback, 56789),
-                    m =>
+                    (m,o,c) =>
                     {
                         Interlocked.Increment(ref i);
                         if (i % 100 == 0) Assert.Comment("Subscriber received {0} messages so far..", i);
-                        //string message = Encoding.ASCII.GetString(m);
+                        //string message = Encoding.ASCII.GetString(m,o,c);
                         //if (!message.StartsWith("Publishing message:"))
                         //    msgChk = false;
-                    }, sw.Start);
+                    }, null, sw.Start);
 
                 cancellationToken.WaitHandle.WaitOne();
 

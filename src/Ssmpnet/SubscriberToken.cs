@@ -9,7 +9,8 @@ namespace Ssmpnet
     public class SubscriberToken
     {
         internal PacketProtocol PacketProtocol;
-        private readonly BlockingCollection<Buf> _q = new BlockingCollection<Buf>(1000);
+        private readonly BufferPool _bufferPool = new BufferPool();
+        private readonly BlockingCollection<Buf> _q = new BlockingCollection<Buf>(100);
         private readonly CancellationTokenSource _c = new CancellationTokenSource();
 
         internal string Topics;
@@ -46,13 +47,15 @@ namespace Ssmpnet
 
         internal void Enqueue(byte[] buffer, int offset, int count)
         {
-            var bytes = BufferPool.Alloc(count);
+            var bytes = _bufferPool.Alloc(count);
 
             Buffer.BlockCopy(buffer, offset, bytes, 0, count);
 
             try
             {
-                _q.TryAdd(new Buf{Buffer = bytes, Size = count}, 2, CancellationToken);
+                // Block if the queue is full. We cannot discard buffers here since
+                // there may be incomplete messages contained in them.
+                _q.Add(new Buf{Buffer = bytes, Size = count}, CancellationToken);
             }
             catch (ObjectDisposedException) { }
             catch (InvalidOperationException) { }
@@ -64,7 +67,7 @@ namespace Ssmpnet
             foreach (var buffer in _q.GetConsumingEnumerable())
             {
                 PacketProtocol.DataReceived(buffer.Buffer, buffer.Offset, buffer.Size);
-                BufferPool.Free(buffer.Buffer);
+                _bufferPool.Free(buffer.Buffer);
             }
         }
     }

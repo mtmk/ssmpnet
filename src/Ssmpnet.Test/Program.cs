@@ -42,9 +42,9 @@ namespace Ssmpnet.Test
             else if (args.Length == 1 && args[0] == "sub")
             {
                 SubscriberSocket.Start(new IPEndPoint(IPAddress.Loopback, 56789), 
-                    m =>
+                    (m,o,c) =>
                     {
-                        string message = Encoding.ASCII.GetString(m);
+                        string message = Encoding.ASCII.GetString(m,o,c);
                         Console.WriteLine("Received: {0}", message);
                     });
                 cancellationToken.WaitHandle.WaitOne();
