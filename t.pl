@@ -1,4 +1,5 @@
 #!/bin/perl
+
 use strict;
 use warnings;
 use TAP::Parser;
