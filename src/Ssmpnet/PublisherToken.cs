@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Net;
 using System.Net.Sockets;
 
 namespace Ssmpnet
@@ -16,6 +17,8 @@ namespace Ssmpnet
         {
             Socket = socket;
         }
+
+        public IPEndPoint LocalEndPoint { get; internal set; }
 
         internal void AddNewSubscriber(Subscription sub)
         {

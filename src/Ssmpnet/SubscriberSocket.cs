@@ -12,53 +12,67 @@ namespace Ssmpnet
         private const string Tag = "SubscriberSocket";
         private const int BufferSize = 64 * 1024;
 
-        public static SubscriberToken Start(IPEndPoint endPoint, Action<byte[], int, int> receiver, string topics = null, Action connected = null)
+        public static SubscriberToken Start(IPEndPoint endPoint, Action<byte[], int, int> receiver, string topics = null, Action connected = null, Config config = null)
+        {
+            var st = new SubscriberToken(endPoint, receiver)
+                {
+                    Connected = connected,
+                    Topics = topics,
+                    Config = config ?? new Config()
+                };
+
+            Connect(st);
+
+            return st;
+        }
+
+        private static void Connect(SubscriberToken st)
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-            var st = new SubscriberToken(socket, endPoint, receiver) { Connected = connected, Topics = topics };
-            var e = new SocketAsyncEventArgs { UserToken = st, RemoteEndPoint = endPoint };
-            var buf = Encoding.UTF8.GetBytes(string.IsNullOrEmpty(topics) ? "*" : topics);
-            e.SetBuffer(buf, 0, buf.Length); e.Completed += CompletedConnect;
+            st.Socket = socket;
 
-            if (!socket.ConnectAsync(e)) CompletedConnect(null, e);
+            var e = new SocketAsyncEventArgs { UserToken = st, RemoteEndPoint = st.EndPoint };
+            e.Completed += CompletedConnect;
 
-            return st;
+            var buf = Encoding.UTF8.GetBytes(string.IsNullOrEmpty(st.Topics) ? "*" : st.Topics);
+            e.SetBuffer(buf, 0, buf.Length);
+
+            if (!socket.ConnectAsync(e)) ThreadPool.QueueUserWorkItem(_ => CompletedConnect(null, e));
         }
 
         private static void CompletedConnect(object sender, SocketAsyncEventArgs e)
         {
             var st = (SubscriberToken)e.UserToken;
+            var sct = new SubscriberClientToken(st);
+
             if (e.SocketError == SocketError.Success)
             {
                 if (st.Connected != null)
                     st.Connected();
 
-                var sst = new SubscriberToken(st.Socket, st.EndPoint, st.Receiver)
-                {
-                    PacketProtocol = new PacketProtocol { MessageArrived = st.Receiver }
-                };
-                var se = new SocketAsyncEventArgs { UserToken = sst }; var buffer = new byte[BufferSize];
+                var se = new SocketAsyncEventArgs { UserToken = sct }; var buffer = new byte[BufferSize];
                 e.SetBuffer(buffer, 0, BufferSize);
                 se.SetBuffer(buffer, 0, BufferSize);
                 se.Completed += CompletedReceive;
-                if (!st.Socket.ReceiveAsync(se)) CompletedReceive(null, se);
+                if (!st.Socket.ReceiveAsync(se)) ThreadPool.QueueUserWorkItem(_ => CompletedReceive(null, se));
             }
             else
             {
                 Log.Error(Tag, "Error: CompletedConnect: {0}", e.SocketError);
-                Retry(st);
+                Retry(sct);
             }
         }
 
-        private static void Retry(SubscriberToken st)
+        private static void Retry(SubscriberClientToken sct)
         {
             Log.Info(Tag, "Retry..");
-            Close(st.Socket);
+            Close(sct.Socket);
+            sct.Close();
 
             // Try to re-connect in 3 seconds
             if (_retry != null) _retry.Dispose();
-            _retry = new Timer(_ => Start(st.EndPoint, st.Receiver, st.Topics, st.Connected), null, 3000, Timeout.Infinite);
+            _retry = new Timer(_ => Connect(sct.SubscriberToken), null, sct.Config.ReconnectTimeout, Timeout.Infinite);
         }
 
         internal static void Close(Socket socket)
@@ -77,33 +91,33 @@ namespace Ssmpnet
             socket.Close();
         }
 
-        private static void Receive(SubscriberToken st, SocketAsyncEventArgs e)
+        private static void Receive(SubscriberClientToken sct, SocketAsyncEventArgs e)
         {
             try
             {
-                if (!st.Socket.ReceiveAsync(e)) CompletedReceive(null, e);
+                if (!sct.Socket.ReceiveAsync(e)) ThreadPool.QueueUserWorkItem(_ => CompletedReceive(null, e));
             }
-            catch (ObjectDisposedException) { Retry(st); }
-            catch (SocketException) { Retry(st); }
+            catch (ObjectDisposedException) { Retry(sct); }
+            catch (SocketException) { Retry(sct); }
         }
 
         private static void CompletedReceive(object sender, SocketAsyncEventArgs e)
         {
-            var st = (SubscriberToken)e.UserToken;
+            var sct = (SubscriberClientToken)e.UserToken;
             
-            if (st.CancellationToken.IsCancellationRequested)
+            if (sct.CancellationToken.IsCancellationRequested)
                     return;
 
             if (e.SocketError == SocketError.Success)
             {
-                st.Enqueue(e.Buffer, 0, e.BytesTransferred);
+                sct.Enqueue(e.Buffer, 0, e.BytesTransferred);
                 e.SetBuffer(0, e.Buffer.Length);
-                Receive(st, e);
+                Receive(sct, e);
             }
             else
             {
                 Log.Debug(Tag, "Error: CompletedReceive: {0}", e.SocketError);
-                Retry(st);
+                Retry(sct);
             }
         }
     }

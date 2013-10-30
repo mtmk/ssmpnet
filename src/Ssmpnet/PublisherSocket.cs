@@ -1,6 +1,8 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace Ssmpnet
 {
@@ -18,8 +20,13 @@ namespace Ssmpnet
             ae.Completed += CompletedAccept;
 
             acceptSocket.Bind(endPoint);
+
+            publisherToken.LocalEndPoint = (IPEndPoint)acceptSocket.LocalEndPoint;
+
+            Log.Info(Tag, "Publisher starting on end point {0}" + publisherToken.LocalEndPoint);
+
             acceptSocket.Listen(100);
-            if (!acceptSocket.AcceptAsync(ae)) CompletedAccept(null, ae);
+            if (!acceptSocket.AcceptAsync(ae)) ThreadPool.QueueUserWorkItem(_ => CompletedAccept(null, ae));
 
             return publisherToken;
         }
@@ -38,7 +45,7 @@ namespace Ssmpnet
                 var re = new SocketAsyncEventArgs { UserToken = new Subscription { Socket = socket, Token = pt } };
                 re.Completed += CompletedReceive;
                 re.SetBuffer(new byte[512], 0, 512);
-                if (!socket.ReceiveAsync(re)) CompletedReceive(null, re);
+                if (!socket.ReceiveAsync(re)) ThreadPool.QueueUserWorkItem(_ => CompletedReceive(null, re));
             }
             else
             {

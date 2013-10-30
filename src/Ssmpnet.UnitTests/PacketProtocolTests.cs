@@ -1,24 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace Ssmpnet.UnitTests
 {
     [TestFixture]
-    public class Class1
+    public class PacketProtocolTests
     {
         [Test]
         //         Message
         //  [===================]
         //  |       |           |
         //     buf1      buf2   
-
         public void MessageSplit()
         {
             var packet = new PacketProtocol();
@@ -128,38 +122,6 @@ namespace Ssmpnet.UnitTests
         static string P(byte[] buf, int o, int s)
         {
             return Regex.Replace(Encoding.UTF8.GetString(buf, o, s), @"[^\x20-\x7F]", ".");
-        }
-    }
-
-    [TestFixture]
-    public class PubSubTest
-    {
-        [Test]
-        public void T()
-        {
-            Task.Factory.StartNew(() =>
-            {
-                PublisherToken p = PublisherSocket.Start(new IPEndPoint(IPAddress.Loopback, 56486));
-                Thread.Sleep(2000);
-                p.Publish(Encoding.UTF32.GetBytes("BEGIN" + new string('x', 1250 * 1024) + "END"));
-                Thread.Sleep(5);
-                p.Publish(Encoding.UTF32.GetBytes("BEGIN" + new string('x', 1250 * 1024) + "END"));
-                p.Publish(Encoding.UTF32.GetBytes("BEGIN" + new string('x', 1250 * 1024) + "END"));
-                Thread.Sleep(1500);
-            });
-
-            Task.Factory.StartNew(() =>
-            {
-                SubscriberSocket.Start(new IPEndPoint(IPAddress.Loopback, 56486), (m, o, c) =>
-                {
-                    var s = Encoding.UTF32.GetString(m, o, c);
-                    Console.WriteLine("BEGIN : " + s.StartsWith("BEGIN"));
-                    Console.WriteLine("END   : " + s.EndsWith("END"));
-                });
-                Thread.Sleep(5 * 1000);
-            });
-
-            Thread.Sleep(5 * 1000);
         }
     }
 }
