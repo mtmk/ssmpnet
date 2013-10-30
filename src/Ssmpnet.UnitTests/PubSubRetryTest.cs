@@ -15,7 +15,7 @@ namespace Ssmpnet.UnitTests
         [Test]
         public void Large_message_consistency()
         {
-            const int numMsg = 10000;
+            const int numMsg = 5000;
 
             var portEvent = new ManualResetEvent(false);
             var startEvent = new ManualResetEvent(false);
@@ -87,7 +87,7 @@ namespace Ssmpnet.UnitTests
                                 Assert.That(s.StartsWith("BEGIN_" + count));
                                 Assert.That(s.EndsWith("END_" + count));
 
-                                count++;
+                                Interlocked.Increment(ref count);
                             }
                             catch 
                             {
@@ -99,7 +99,7 @@ namespace Ssmpnet.UnitTests
 
                     doneEvent.WaitOne();
 
-                    Assert.That(count == numMsg);
+                    Assert.That(Thread.VolatileRead(ref count) == numMsg);
 
                     double value = ((double)Thread.VolatileRead(ref size))/1024/1024;
                     Console.WriteLine(value);

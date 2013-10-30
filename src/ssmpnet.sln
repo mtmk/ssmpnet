@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ssmpnet", "Ssmpnet\Ssmpnet.csproj", "{6BAE8331-3EA6-4A5D-BE25-D580B8A2AFB9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ssmpnet.Test", "Ssmpnet.Test\Ssmpnet.Test.csproj", "{29F4A11F-FBBE-49A9-A595-060733CAFB5C}"
@@ -24,6 +24,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ssmpnet.Test.ZeroByte", "Ssmpnet.Test.ZeroByte\Ssmpnet.Test.ZeroByte.csproj", "{BCC630E7-AC96-498B-B5A4-C66ED297F369}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ssmpnet.UnitTests", "Ssmpnet.UnitTests\Ssmpnet.UnitTests.csproj", "{C59140F0-0053-4843-891B-64F9516FF970}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "example", "example", "{20CE2257-7E26-453E-AD23-93D92E251A97}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
