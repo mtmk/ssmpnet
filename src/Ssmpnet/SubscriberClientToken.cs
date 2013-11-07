@@ -7,6 +7,7 @@ namespace Ssmpnet
 {
     internal class SubscriberClientToken
     {
+        private const string Tag = "SubscriberClientToken";
         internal readonly SubscriberToken SubscriberToken;
         internal PacketProtocol PacketProtocol;
         private readonly BufferPool _bufferPool = new BufferPool();
@@ -17,13 +18,10 @@ namespace Ssmpnet
 
         internal Socket Socket;
 
-        internal Config Config;
-
         internal SubscriberClientToken(SubscriberToken subscriberToken)
         {
             SubscriberToken = subscriberToken;
             Socket = SubscriberToken.Socket;
-            Config = subscriberToken.Config;
             PacketProtocol = new PacketProtocol { MessageArrived = SubscriberToken.Receiver };
             CancellationToken = CancellationTokenSource.CreateLinkedTokenSource(subscriberToken.CancellationToken, _c.Token).Token;
 
@@ -48,6 +46,7 @@ namespace Ssmpnet
 
             try
             {
+                // XXX
                 // Block if the queue is full. We cannot discard buffers here since
                 // there may be incomplete messages contained in them.
                 _q.Add(new Buf { Buffer = bytes, Size = count }, CancellationToken);
@@ -59,11 +58,21 @@ namespace Ssmpnet
 
         private void ConsumeQueue(object state)
         {
-            foreach (var buffer in _q.GetConsumingEnumerable())
+            Log.Info(Tag, "ConsumeQueue thread: Enter (thread {0})", Thread.CurrentThread.ManagedThreadId);
+
+            try
             {
-                PacketProtocol.DataReceived(buffer.Buffer, buffer.Offset, buffer.Size);
-                _bufferPool.Free(buffer.Buffer);
+                foreach (var buffer in _q.GetConsumingEnumerable(CancellationToken))
+                {
+                    PacketProtocol.DataReceived(buffer.Buffer, buffer.Offset, buffer.Size);
+                    _bufferPool.Free(buffer.Buffer);
+                }
             }
+            catch (ObjectDisposedException) { }
+            catch (InvalidOperationException) { }
+            catch (OperationCanceledException) { }
+
+            Log.Info(Tag, "ConsumeQueue thread: Exit (thread {0})", Thread.CurrentThread.ManagedThreadId);
         }
     }
 }

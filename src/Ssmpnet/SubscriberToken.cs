@@ -9,6 +9,8 @@ namespace Ssmpnet
     {
         private readonly CancellationTokenSource _c = new CancellationTokenSource();
 
+        internal Timer Retry;
+
         internal string Topics;
 
         internal Socket Socket;
@@ -37,12 +39,8 @@ namespace Ssmpnet
                 _c.Cancel();
             }
             catch (ObjectDisposedException) { }
+
             SubscriberSocket.Close(Socket);
         }
-    }
-
-    public class Config
-    {
-        public int ReconnectTimeout = 3000;
     }
 }

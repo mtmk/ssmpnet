@@ -70,7 +70,9 @@ namespace Ssmpnet
 
             try
             {
-                _q.TryAdd(new Buf { Buffer = wrapMessage, Size = len }, 2, _cancellationToken);
+                // XXX
+                //_q.TryAdd(new Buf { Buffer = wrapMessage, Size = len }, 2, _cancellationToken);
+                _q.Add(new Buf { Buffer = wrapMessage, Size = len }, _cancellationToken);
             }
             catch (ObjectDisposedException) { }
             catch (OperationCanceledException) { }

@@ -20,6 +20,7 @@ namespace Ssmpnet
         {
             var len = BitConverter.GetBytes(msg.Length);
 
+            // XXX
             //var buffer = new byte[len.Length + msg.Length];
             length = len.Length + msg.Length;
             var buffer = bufferPool.Alloc(length);
@@ -91,7 +92,10 @@ namespace Ssmpnet
             else
             {
                 // Create the data buffer and start reading into it
+                
+                // XXX
                 //_dataBuffer = new byte[length];
+
                 _dataBuffer = _bufferPool.Alloc(_length);
 
                 _bytesReceived = 0;

@@ -52,6 +52,7 @@ namespace Ssmpnet
         }
     }
 
+    // XXX
     // http://stackoverflow.com/a/530228/248393 - Marc Gravell
     internal class SizeQueue<T>
     {

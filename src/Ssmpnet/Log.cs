@@ -1,37 +1,31 @@
-﻿using System;
-using System.Diagnostics;
-using System.Threading;
+﻿using System.Diagnostics;
 
 namespace Ssmpnet
 {
     internal static class Log
     {
+        private static readonly TraceSource TraceSource = new TraceSource("Ssmpnet");
+
         internal static void Error(string tag, string format, params object[] args)
         {
-            //ConsoleWriteLine("ERROR", tag, format, args);
+            WriteLog(TraceEventType.Error, 1, tag, format, args);
         }
 
         [Conditional("TRACE")]
         internal static void Info(string tag, string format, params object[] args)
         {
-            //ConsoleWriteLine("INFO", tag, format, args);
+            WriteLog(TraceEventType.Information, 2, tag, format, args);
         }
 
         [Conditional("DEBUG")]
         internal static void Debug(string tag, string format, params object[] args)
         {
-            //ConsoleWriteLine("DEBUG", tag, format, args);
+            WriteLog(TraceEventType.Verbose, 3, tag, format, args);
         }
 
-        internal static void ConsoleWriteLine(string level, string tag, string format, params object[] args)
+        private static void WriteLog(TraceEventType level, int id, string tag, string format, params object[] args)
         {
-            Console.WriteLine("[{0}] Thread[ID:{3} TP:{4}] {1} - {2}",
-                level,
-                tag,
-                string.Format(format, args)
-                ,Thread.CurrentThread.ManagedThreadId
-                ,Thread.CurrentThread.IsThreadPoolThread
-                );
+            TraceSource.TraceEvent(level, id, "[" + tag + "] " + format, args);
         }
     }
 }

@@ -8,7 +8,6 @@ namespace Ssmpnet
 {
     public static class SubscriberSocket
     {
-        private static Timer _retry;
         private const string Tag = "SubscriberSocket";
         private const int BufferSize = 64 * 1024;
 
@@ -71,8 +70,8 @@ namespace Ssmpnet
             sct.Close();
 
             // Try to re-connect in 3 seconds
-            if (_retry != null) _retry.Dispose();
-            _retry = new Timer(_ => Connect(sct.SubscriberToken), null, sct.Config.ReconnectTimeout, Timeout.Infinite);
+            if (sct.SubscriberToken.Retry != null) sct.SubscriberToken.Retry.Dispose();
+            sct.SubscriberToken.Retry = new Timer(_ => Connect(sct.SubscriberToken), null, sct.SubscriberToken.Config.ReconnectTimeout, Timeout.Infinite);
         }
 
         internal static void Close(Socket socket)
