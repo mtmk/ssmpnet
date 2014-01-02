@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -17,6 +18,13 @@ namespace Ssmpnet.TesterGui
         }
 
         private string _rate = "11";
+        public string Rate
+        {
+            get { return _rate; }
+            set { _rate = value; RaisePropertyChanged(() => Rate); }
+        }
+        
+        private string _pubPort = "11";
         public string Rate
         {
             get { return _rate; }
@@ -64,6 +72,9 @@ namespace Ssmpnet.TesterGui
                 return new RelayCommand(() =>
                     {
                         PubEnabled = false;
+
+                        var publisherToken = PublisherSocket.Start(new IPEndPoint(IPAddress.Any, int.Parse(PubPort)));
+
                         _tPub = Task.Factory.StartNew(() =>
                             {
                                 PubCmdText = "Starting..";
