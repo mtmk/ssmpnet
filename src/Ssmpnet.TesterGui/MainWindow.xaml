@@ -2,19 +2,34 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Ssmpnet.TesterGui"
-        Title="MainWindow" Height="350" Width="525">
+        Title="Ssmpnet Test" Height="374" Width="247" ResizeMode="NoResize">
     <Window.DataContext>
         <local:TesterViewModel />
     </Window.DataContext>
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="258" />
-            <RowDefinition Height="53*" />
-        </Grid.RowDefinitions>
-        <Button Content="Button" Grid.Row="1" Height="23" HorizontalAlignment="Left" Margin="211,18,0,0" Name="button1" VerticalAlignment="Top" Width="75" Command="{Binding ChangeRate}"/>
-        <TextBox Height="23" HorizontalAlignment="Left" Margin="59,32,0,0" Name="textBox1" VerticalAlignment="Top" Width="120" Text="{Binding Rate}" />
-        <TextBlock Height="23" HorizontalAlignment="Left" Margin="59,95,0,0" Name="textBlock1" Text="{Binding Rate}" VerticalAlignment="Top" Width="120" />
-        <ListView Height="178" HorizontalAlignment="Left" Margin="264,32,0,0" Name="listBox1" VerticalAlignment="Top" Width="183" ItemsSource="{Binding TesterItems}">
+    <Grid Height="336" Width="226">
+
+        <Label Content="Publisher" Height="28" HorizontalAlignment="Left" Margin="19,8,0,0" Name="label1" VerticalAlignment="Top" />
+        <TextBox Height="23" HorizontalAlignment="Left"
+                 Margin="79,10,0,0"
+                 Name="textBox1"
+                 VerticalAlignment="Top" Width="120"
+                 Text="{Binding Rate}" />
+
+        <Label Content="Subscriber" Height="28" HorizontalAlignment="Left" Margin="12,38,0,0" Name="label2" VerticalAlignment="Top" />
+        <TextBox Height="23" HorizontalAlignment="Left"
+                 Margin="79,40,0,0"
+                 Name="textBox2"
+                 VerticalAlignment="Top" Width="120" />
+
+        <TextBlock Height="23" HorizontalAlignment="Left" Margin="79,69,0,0"
+                   Name="textBlock1"
+                   Text="{Binding Rate}"
+                   VerticalAlignment="Top" Width="120" />
+        
+        <ListView Margin="79,98,0,0" Name="listBox1"
+                  ItemsSource="{Binding TesterItems}"
+                  HorizontalAlignment="Left" Width="120" Height="141"
+                  VerticalAlignment="Top">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <StackPanel>
@@ -23,5 +38,25 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+        
+        <Button Content="{Binding PubCmdText}"
+                IsEnabled="{Binding PubEnabled}"
+                Height="23"
+                HorizontalAlignment="Left"
+                Margin="79,257,0,0"
+                Name="button1"
+                VerticalAlignment="Top" Width="120"
+                Command="{Binding StartPub}" />
+
+
+        <Button Content="{Binding SubCmdText}"
+                IsEnabled="{Binding SubEnabled}"
+                Height="23"
+                HorizontalAlignment="Left"
+                Margin="79,286,0,0"
+                Name="button2"
+                VerticalAlignment="Top" Width="120"
+                Command="{Binding StartSub}"/>
+
     </Grid>
 </Window>
