@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -28,6 +29,7 @@ namespace Ssmpnet
         private readonly BlockingCollection<Buf> _q = new BlockingCollection<Buf>(100);
         private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
         private readonly CancellationToken _cancellationToken;
+        private readonly Stream _writeStream;
         internal Socket Socket;
         internal IPEndPoint EndPoint;
         internal int Count;
@@ -36,6 +38,8 @@ namespace Ssmpnet
         internal PublisherClientToken(Socket socket, PublisherToken publisherToken, string topics)
         {
             Socket = socket;
+            _writeStream = new NetworkStream(socket);
+            _writeStream = new BufferedStream(_writeStream);
             _sender = new SocketAsyncEventArgs();
             _sender.Completed += CompletedSend;
             _sender.UserToken = this;
@@ -96,9 +100,28 @@ namespace Ssmpnet
 
         private void SendInternal(Buf message)
         {
+            //Log.Debug(Tag, "Sending message..");
+
+            try
+            {
+                var bytes = new byte[message.Size];
+                Buffer.BlockCopy(message.Buffer, message.Offset, bytes, 0, message.Size);
+                _bufferPool.Free(message.Buffer);
+
+                _writeStream.Write(bytes, 0, message.Size);
+            }
+            catch (SocketException)
+            {
+                Close(this);
+            }
+            catch (IOException)
+            {
+                Close(this);
+            }
+            return;
+
             _r.Wait();
             _r.Reset();
-            //Log.Debug(Tag, "Sending message..");
             _buf = message;
             _sender.SetBuffer(message.Buffer, message.Offset, message.Size);
             if (!Socket.SendAsync(_sender)) CompletedSend(null, _sender);
