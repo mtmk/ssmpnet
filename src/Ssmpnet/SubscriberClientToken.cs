@@ -13,7 +13,8 @@ namespace Ssmpnet
         private readonly BufferPool _bufferPool = new BufferPool();
         private readonly BlockingCollection<Buf> _q = new BlockingCollection<Buf>(100);
         private readonly CancellationTokenSource _c = new CancellationTokenSource();
-        
+        private Timer _keepAlive;
+
         internal CancellationToken CancellationToken;
 
         internal Socket Socket;
@@ -22,10 +23,43 @@ namespace Ssmpnet
         {
             SubscriberToken = subscriberToken;
             Socket = SubscriberToken.Socket;
-            PacketProtocol = new PacketProtocol { MessageArrived = SubscriberToken.Receiver };
+            PacketProtocol = new PacketProtocol { MessageArrived = SubscriberToken.Receiver, KeepAlive = KeepAlive };
             CancellationToken = CancellationTokenSource.CreateLinkedTokenSource(subscriberToken.CancellationToken, _c.Token).Token;
 
+            _keepAlive = new Timer(KeepAliveTimer, null, 6000, 6000);
             ThreadPool.QueueUserWorkItem(ConsumeQueue);
+        }
+
+        readonly object _keepAliveTimerSync = new object();
+        private void KeepAliveTimer(object state)
+        {
+            var tryEnter = Monitor.TryEnter(_keepAliveTimerSync);
+            if (!tryEnter) return;
+
+            try
+            {
+                DateTime tmp;
+                lock (_keepAliveSync)
+                    tmp = _lastKeepAlive;
+
+                if ((DateTime.UtcNow - tmp) > TimeSpan.FromSeconds(10))
+                {
+                    Log.Info(Tag, "Did not receive any keep alives. Reconnecting..");
+                    SubscriberSocket.Retry(this);
+                }
+            }
+            finally
+            {
+                Monitor.Exit(_keepAliveTimerSync);
+            }
+        }
+
+        private readonly object _keepAliveSync = new object();
+        private DateTime _lastKeepAlive = DateTime.UtcNow;
+        private void KeepAlive()
+        {
+            lock (_keepAliveSync)
+                _lastKeepAlive = DateTime.UtcNow;
         }
 
         public void Close()
@@ -33,6 +67,8 @@ namespace Ssmpnet
             try
             {
                 _c.Cancel();
+                if (_keepAlive != null)
+                    _keepAlive.Dispose();
             }
             catch (ObjectDisposedException) { }
             SubscriberSocket.Close(Socket);

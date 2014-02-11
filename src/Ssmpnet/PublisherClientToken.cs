@@ -18,6 +18,7 @@ namespace Ssmpnet
     {
         private const string Tag = "PublisherClientToken";
 
+        private readonly Timer _keepAlive;
         private readonly BufferPool _bufferPool = new BufferPool();
         private readonly PublisherToken _parent;
         private readonly SocketAsyncEventArgs _sender;
@@ -30,6 +31,7 @@ namespace Ssmpnet
         internal Socket Socket;
         internal IPEndPoint EndPoint;
         internal int Count;
+        private readonly Buf _keepAliveMessage = new Buf{Buffer = new byte[4], Size = 4};
 
         internal PublisherClientToken(Socket socket, PublisherToken publisherToken, string topics)
         {
@@ -43,7 +45,16 @@ namespace Ssmpnet
             if (!string.IsNullOrEmpty(topics))
                 _topics = topics.Split(',');
 
+            _keepAlive = new Timer(KeepAlive, null, 3000, 3000);
             ThreadPool.QueueUserWorkItem(Sender);
+        }
+
+        private void KeepAlive(object state)
+        {
+            if (Socket.Connected)
+            {
+                SendInternal(_keepAliveMessage);
+            }
         }
 
         private void Sender(object state)
@@ -87,7 +98,7 @@ namespace Ssmpnet
         {
             _r.Wait();
             _r.Reset();
-            Log.Debug(Tag, "Sending message..");
+            //Log.Debug(Tag, "Sending message..");
             _buf = message;
             _sender.SetBuffer(message.Buffer, message.Offset, message.Size);
             if (!Socket.SendAsync(_sender)) CompletedSend(null, _sender);
@@ -103,7 +114,7 @@ namespace Ssmpnet
         {
             var pct = (PublisherClientToken)e.UserToken;
 
-            Log.Debug(Tag, "Completed send: {0}", e.SocketError);
+            //Log.Debug(Tag, "Completed send: {0}", e.SocketError);
 
             pct.FreeBuffer();
 
@@ -117,7 +128,7 @@ namespace Ssmpnet
             pct._r.Set();
         }
 
-        private static void Close(PublisherClientToken pct)
+        internal static void Close(PublisherClientToken pct)
         {
             Log.Debug(Tag, "Closing socket");
 

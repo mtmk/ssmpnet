@@ -38,8 +38,8 @@ namespace Ssmpnet
 
         public void Publish(string topic, byte[] message)
         {
-            var subscribers = _subs.Values;
-            Log.Debug(Tag, "Publishing message..#{0}", subscribers.Count);
+            //var subscribers = _subs.Values;
+            //Log.Debug(Tag, "Publishing message..#{0}", subscribers.Count);
 
 
             foreach (var s in _subs)
@@ -52,6 +52,29 @@ namespace Ssmpnet
                 {
                 }
             }
+        }
+
+        public void Close()
+        {
+            foreach (var s in _subs)
+            {
+                try
+                {
+                    PublisherClientToken.Close(s.Value);
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
+
+            try
+            {
+                Socket.Shutdown(SocketShutdown.Both);
+            }
+            catch (SocketException){}
+            catch (ObjectDisposedException){}
+
+            Socket.Close();
         }
     }
 }
