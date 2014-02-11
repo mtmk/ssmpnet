@@ -63,15 +63,25 @@ namespace Ssmpnet
             }
         }
 
-        private static void Retry(SubscriberClientToken sct)
+        internal static void Retry(SubscriberClientToken sct)
         {
-            Log.Info(Tag, "Retry..");
-            Close(sct.Socket);
-            sct.Close();
+            var tryEnter = Monitor.TryEnter(sct);
+            if (!tryEnter) return;
+            try
+            {
+                Log.Info(Tag, "Retry..");
+                Close(sct.Socket);
+                sct.Close();
 
-            // Try to re-connect in 3 seconds
-            if (sct.SubscriberToken.Retry != null) sct.SubscriberToken.Retry.Dispose();
-            sct.SubscriberToken.Retry = new Timer(_ => Connect(sct.SubscriberToken), null, sct.SubscriberToken.Config.ReconnectTimeout, Timeout.Infinite);
+                // Try to re-connect in 3 seconds
+                if (sct.SubscriberToken.Retry != null) sct.SubscriberToken.Retry.Dispose();
+                sct.SubscriberToken.Retry = new Timer(_ => Connect(sct.SubscriberToken), null,
+                                                      sct.SubscriberToken.Config.ReconnectTimeout, Timeout.Infinite);
+            }
+            finally
+            {
+                Monitor.Exit(sct);
+            }
         }
 
         internal static void Close(Socket socket)

@@ -23,7 +23,7 @@ namespace Ssmpnet
 
             publisherToken.LocalEndPoint = (IPEndPoint)acceptSocket.LocalEndPoint;
 
-            Log.Info(Tag, "Publisher starting on end point {0}" + publisherToken.LocalEndPoint);
+            Log.Info(Tag, "Publisher starting on end point {0}", publisherToken.LocalEndPoint);
 
             acceptSocket.Listen(100);
             if (!acceptSocket.AcceptAsync(ae)) ThreadPool.QueueUserWorkItem(_ => CompletedAccept(null, ae));

@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 
 namespace Ssmpnet
 {
@@ -26,6 +27,7 @@ namespace Ssmpnet
         private static void WriteLog(TraceEventType level, int id, string tag, string format, params object[] args)
         {
             TraceSource.TraceEvent(level, id, "[" + tag + "] " + format, args);
+            Console.WriteLine(string.Format("[" + tag + "] " + format, args));
         }
     }
 }
