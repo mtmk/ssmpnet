@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Management.Instrumentation;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -10,14 +11,19 @@ namespace Ssmpnet.TesterGui2
 {
     public class NetViewModel : INotifyPropertyChanged
     {
-        private string _publisherInfo;
+        private volatile string _publisherInfo;
         public string PublisherInfo
         {
-            get { return _publisherInfo; }
+            get
+            {
+                Debug.WriteLine("Gn:" + Thread.CurrentThread.ManagedThreadId);
+                Debug.WriteLine("Gt:" + Task.CurrentId);
+                return _publisherInfo;
+            }
             set { _publisherInfo = value; OnPropertyChanged(); }
         }
 
-        private string _subscriberInfo;
+        private volatile string _subscriberInfo;
         public string SubscriberInfo
         {
             get { return _subscriberInfo; }
@@ -34,11 +40,13 @@ namespace Ssmpnet.TesterGui2
                     if (!Monitor.TryEnter(sync)) return;
                     try
                     {
-                        for (double i = 0; i < Math.PI; i += .1)
-                        {
-                            Thread.Sleep(100);
-                            PublisherInfo = new string('=', (int)(Math.Sin(i) * 10));
-                        }
+                       // for (double i = 0; i < Math.PI; i += .1)
+                       // {
+                       //     Thread.Sleep(100);
+                        PublisherInfo = "X";//new string('=', (int)(Math.Sin(i) * 10));
+                            Debug.WriteLine("Bn:" + Thread.CurrentThread.ManagedThreadId);
+                            Debug.WriteLine("Bt:" + Task.CurrentId);
+                      //  }
                     }
                     finally
                     {

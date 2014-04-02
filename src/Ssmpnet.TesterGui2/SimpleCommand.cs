@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -20,6 +22,10 @@ namespace Ssmpnet.TesterGui2
 
         public void Execute(object parameter)
         {
+            Debug.WriteLine("Cn:" + Thread.CurrentThread.ManagedThreadId);
+            Debug.WriteLine("Cn:" + Thread.CurrentThread.Name);
+            Debug.WriteLine("Ct:" + Task.CurrentId);
+
             Task.Factory.StartNew(_action);
         }
 
