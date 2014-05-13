@@ -55,6 +55,10 @@
       <Project>{05b90148-b979-44ce-8200-fe6b7ec16fcb}</Project>
       <Name>SpagetiLib</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Ssmpnet\Ssmpnet.csproj">
+      <Project>{6bae8331-3ea6-4a5d-be25-d580b8a2afb9}</Project>
+      <Name>Ssmpnet</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

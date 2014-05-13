@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -33,6 +32,7 @@ namespace SpagetiLib.Net
             public TcpClient TcpClient;
             public NetworkStream NetworkStream;
             public BlockingCollection<Payload> Queue;
+            public string Name;
         }
 
         public PublisherProtobufSocket(IPEndPoint endPoint, int queueSize = 1000)
@@ -47,9 +47,9 @@ namespace SpagetiLib.Net
             {
                 var tryAdd = client.Queue.TryAdd(new Payload {Header = header, Message = message});
                 if (tryAdd)
-                    Log.Debug(Tag, "Sent message to client " + client.TcpClient.Client.RemoteEndPoint);
+                    Log.Debug(Tag, "Sent message to client " + client.Name);
                 else
-                    Log.Debug(Tag, "Queue full for client " + client.TcpClient.Client.RemoteEndPoint);
+                    Log.Debug(Tag, "Queue full for client " + client.Name);
             }
         }
 
@@ -84,15 +84,13 @@ namespace SpagetiLib.Net
                 catch (Exception e)
                 {
                     Log.Debug(Tag, "Client connection error: " + e.Message);
-                    Log.Info(Tag, "Subscriber disconnected (" + client.TcpClient.Client.RemoteEndPoint + ")");
+                    Log.Info(Tag, "Subscriber disconnected (" + client.Name + ")");
                     Client _; _clients.TryRemove(client, out _);
                     break;
                 }
             }
-            try { client.NetworkStream.Close(3000); }
-            catch { }
-            try { client.TcpClient.Close(); }
-            catch { }
+            try { client.NetworkStream.Close(3000); } catch { }
+            try { client.TcpClient.Close(); } catch { }
         }
 
         private void AcceptClient()
@@ -109,14 +107,15 @@ namespace SpagetiLib.Net
 
                 var tcpClient = _server.AcceptTcpClient();
 
-                Log.Info(Tag, "Subscriber connected (" + tcpClient.Client.RemoteEndPoint + ")");
-
                 var client = new Client
                               {
                                   TcpClient = tcpClient,
                                   NetworkStream = tcpClient.GetStream(),
                                   Queue = new BlockingCollection<Payload>(_queueSize)
                               };
+                client.Name = client.GetHashCode().ToString();
+
+                Log.Info(Tag, "Subscriber connected (" + client.Name + ")");
 
                 _clients.TryAdd(client, client);
 
@@ -131,6 +130,8 @@ namespace SpagetiLib.Net
 
         public void Stop()
         {
+            Log.Info(Tag, "Publisher stopping");
+
             _cancellation.Cancel();
 
             _acceptTask.Join();

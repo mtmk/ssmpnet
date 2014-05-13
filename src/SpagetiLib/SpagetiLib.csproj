@@ -45,11 +45,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Net\BufferPool.cs" />
     <Compile Include="EpochConverter.cs" />
     <Compile Include="MessageTest.cs" />
     <Compile Include="Net\Log.cs" />
-    <Compile Include="Net\PacketProtocol.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Net\PublisherProtobufSocket.cs" />
     <Compile Include="SpagetiMessage1.cs" />

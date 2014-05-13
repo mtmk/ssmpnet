@@ -46,6 +46,8 @@ namespace SpagetiLib.Net
 
         public void Subscribe(Func<THeader, Type> messageTypeResolver, Action<THeader, object> receiver)
         {
+            Log.Info(Tag, "Subscription starting");
+
             _messageTypeResolver = messageTypeResolver;
             _receiver = receiver;
             _cancellation = new CancellationTokenSource();
@@ -56,47 +58,49 @@ namespace SpagetiLib.Net
 
         private void ReConnect()
         {
-            ThreadPool.QueueUserWorkItem(_ =>
-                                         {
-                                             if (!Monitor.TryEnter(_connectSync)) return;
-                                             try
-                                             {
-                                                 _cancellation.Cancel();
+            ThreadPool.QueueUserWorkItem(
+                _ =>
+                {
+                    if (!Monitor.TryEnter(_connectSync)) return;
+                    try
+                    {
+                        _cancellation.Cancel();
 
-                                                 Log.Info(Tag, "Reconnecting..");
-                                                 _readerTask.Join();
-                                                 _consumerTask.Join();
-                                                 _connectTask.Join();
+                        Log.Info(Tag, "Reconnecting..");
 
-                                                 _cancellation = new CancellationTokenSource();
-                                                 var token = _cancellation.Token;
+                        _readerTask.Join();
+                        _consumerTask.Join();
+                        _connectTask.Join();
 
-                                                 _queue = new BlockingCollection<Payload>(_queueSize);
-                                                 _connectTask = new Thread(Connect)
-                                                                {
-                                                                    IsBackground = true,
-                                                                    Name = "Connect"
-                                                                };
-                                                 _connectTask.Start();
-                                             }
-                                             finally
-                                             {
-                                                 Monitor.Exit(_connectSync);
-                                             }
-                                         });
+                        _cancellation = new CancellationTokenSource();
+                        _queue = new BlockingCollection<Payload>(_queueSize);
+
+                        _connectTask = new Thread(Connect)
+                        {
+                            IsBackground = true,
+                            Name = "Connect"
+                        };
+                        _connectTask.Start();
+                    }
+                    finally
+                    {
+                        Monitor.Exit(_connectSync);
+                    }
+                });
         }
 
         private void Connect()
         {
             var token = _cancellation.Token;
-
+            var connected = false;
             while (!token.IsCancellationRequested)
             {
                 try
                 {
-                    _tcpClient = new TcpClient();//{ReceiveTimeout = 10, SendTimeout = 10};
+                    _tcpClient = new TcpClient();
                     _tcpClient.Connect(_endPoint);
                     _networkStream = _tcpClient.GetStream();
+                    connected = true;
                     break;
                 }
                 catch (Exception e)
@@ -107,10 +111,13 @@ namespace SpagetiLib.Net
                 }
             }
 
+            if (!connected) return;
+
             Log.Debug(Tag, "Subscription started");
 
             _readerTask = new Thread(ReadMessages){IsBackground = true, Name = "Reader"};
             _readerTask.Start();
+
             _consumerTask = new Thread(ConsumeQueue){IsBackground = true, Name = "Consumer"};
             _consumerTask.Start();
 
@@ -130,6 +137,12 @@ namespace SpagetiLib.Net
                 {
                     var header = Serializer.DeserializeWithLengthPrefix<THeader>(_networkStream, PrefixStyle.Fixed32);
                     var message = RuntimeTypeModel.Default.DeserializeWithLengthPrefix(_networkStream, null, _messageTypeResolver(header), PrefixStyle.Fixed32, 0);
+
+                    if (message == null)
+                    {
+                        throw new Exception("no data");
+                    }
+
                     _queue.Add(new Payload { Header = header, Message = message }, token);
                 }
                 catch (Exception e)
@@ -137,6 +150,7 @@ namespace SpagetiLib.Net
                     Log.Debug(Tag, "Cannot receive message: " + e.Message);
                     Log.Info(Tag, "Publisher disconnected");
                     ReConnect();
+                    break;
                 }
             }
 
@@ -177,16 +191,20 @@ namespace SpagetiLib.Net
                 }
             }
 
-            Log.Info(Tag, "(consumer task exiting..)");
+            Log.Debug(Tag, "(consumer task exiting..)");
         }
 
         public void Close()
         {
-            _cancellation.Cancel();
-            _connectTask.Join();
-            _consumerTask.Join();
-            _readerTask.Join();
-            _tcpClient.Close();
+            Log.Info(Tag, "Subscription closing");
+
+            if (_cancellation != null) _cancellation.Cancel();
+            if (_consumerTask != null ) _connectTask.Join();
+            if (_consumerTask != null) _consumerTask.Join();
+            if (_readerTask != null) _readerTask.Join();
+
+            try { _networkStream.Close(); } catch { }
+            try { _tcpClient.Close(); } catch { }
 
             _cancellation = null;
             _queue = null;
