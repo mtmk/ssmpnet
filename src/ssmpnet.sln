@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30110.0
+VisualStudioVersion = 12.0.30501.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ssmpnet", "Ssmpnet\Ssmpnet.csproj", "{6BAE8331-3EA6-4A5D-BE25-D580B8A2AFB9}"
 EndProject
@@ -42,6 +42,12 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpagetiClient", "SpagetiClient\SpagetiClient.csproj", "{035D2C03-A618-409C-8BED-7AB5D1C68D14}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpagetiLib", "SpagetiLib\SpagetiLib.csproj", "{05B90148-B979-44CE-8200-FE6B7EC16FCB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ProtobufSockets_Library", "ProtobufSockets_Library", "{D383EE5A-BF10-45BE-9606-02786CD9E4FE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProtobufSockets", "ProtobufSockets\ProtobufSockets.csproj", "{3C11CC05-CA2A-4205-A08A-69AB1C97FC29}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProtobufSockets.Tests", "ProtobufSockets.Tests\ProtobufSockets.Tests.csproj", "{DAA4AA5A-D082-41AA-92BD-5826725AF517}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -117,6 +123,14 @@ Global
 		{05B90148-B979-44CE-8200-FE6B7EC16FCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{05B90148-B979-44CE-8200-FE6B7EC16FCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{05B90148-B979-44CE-8200-FE6B7EC16FCB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C11CC05-CA2A-4205-A08A-69AB1C97FC29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C11CC05-CA2A-4205-A08A-69AB1C97FC29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C11CC05-CA2A-4205-A08A-69AB1C97FC29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C11CC05-CA2A-4205-A08A-69AB1C97FC29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAA4AA5A-D082-41AA-92BD-5826725AF517}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAA4AA5A-D082-41AA-92BD-5826725AF517}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAA4AA5A-D082-41AA-92BD-5826725AF517}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAA4AA5A-D082-41AA-92BD-5826725AF517}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -134,5 +148,7 @@ Global
 		{1951BA3A-E141-4A9A-BFEF-3699C2018D4C} = {65ADBCC8-5AC7-43F6-8093-45A7D541A758}
 		{035D2C03-A618-409C-8BED-7AB5D1C68D14} = {65ADBCC8-5AC7-43F6-8093-45A7D541A758}
 		{05B90148-B979-44CE-8200-FE6B7EC16FCB} = {65ADBCC8-5AC7-43F6-8093-45A7D541A758}
+		{3C11CC05-CA2A-4205-A08A-69AB1C97FC29} = {D383EE5A-BF10-45BE-9606-02786CD9E4FE}
+		{DAA4AA5A-D082-41AA-92BD-5826725AF517} = {D383EE5A-BF10-45BE-9606-02786CD9E4FE}
 	EndGlobalSection
 EndGlobal
