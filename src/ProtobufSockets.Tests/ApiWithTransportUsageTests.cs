@@ -4,16 +4,16 @@ using Xunit;
 
 namespace ProtobufSockets.Tests
 {
-    public class ApiUsageTests
+    public class ApiWithTransportUsageTests
     {
         [Fact]
         public void Subscriber_receives_message()
         {
             var transport = new TransportEventBased();
 
-            var publisher = new Publisher(transport);
+            var publisher = new PublisherWithTransport(transport);
 
-            var subscriber = new Subscriber(transport);
+            var subscriber = new SubscriberWithTransport(transport);
 
             var r = new ManualResetEvent(false);
 
@@ -34,10 +34,10 @@ namespace ProtobufSockets.Tests
         {
             var transport = new TransportEventBased();
 
-            var publisher = new Publisher(transport);
+            var publisher = new PublisherWithTransport(transport);
 
-            var subscriber1 = new Subscriber(transport);
-            var subscriber2 = new Subscriber(transport);
+            var subscriber1 = new SubscriberWithTransport(transport);
+            var subscriber2 = new SubscriberWithTransport(transport);
 
             var r1 = new ManualResetEvent(false);
             var r2 = new ManualResetEvent(false);
@@ -66,10 +66,10 @@ namespace ProtobufSockets.Tests
         {
             var transport = new TransportEventBased();
 
-            var publisher = new Publisher(transport);
+            var publisher = new PublisherWithTransport(transport);
 
-            var subscriber1 = new Subscriber(transport);
-            var subscriber2 = new Subscriber(transport);
+            var subscriber1 = new SubscriberWithTransport(transport);
+            var subscriber2 = new SubscriberWithTransport(transport);
 
             var r1 = new ManualResetEvent(false);
             var r2 = new ManualResetEvent(false);
@@ -92,10 +92,5 @@ namespace ProtobufSockets.Tests
             Assert.True(r1.WaitOne(TimeSpan.FromSeconds(2)));
             Assert.True(r2.WaitOne(TimeSpan.FromSeconds(2)));
         }
-    }
-
-    public class Message
-    {
-        public string Payload { get; set; }
     }
 }
