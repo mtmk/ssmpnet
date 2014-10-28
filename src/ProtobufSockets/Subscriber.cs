@@ -3,41 +3,52 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using ProtoBuf;
-using ProtoBuf.Meta;
+using ProtobufSockets.Internal;
 
 namespace ProtobufSockets
 {
     public class Subscriber : IDisposable
     {
-        private const string Tag = "Sub";
+        private const LogTag Tag = LogTag.Subscriber;
 
         private int _indexEndPoint = -1;
         private readonly IPEndPoint[] _endPoint;
+        private readonly string _name;
         private TcpClient _tcpClient;
         private Thread _consumerThread;
         private Action<object> _action;
         private NetworkStream _networkStream;
         private string _topic;
-        private readonly object _disposeSync = new object();
         private bool _disposed;
-        private readonly object _connectSync = new object();
-        private readonly object _typeSync = new object();
         private Timer _reconnectTimer;
         private Type _type;
+        private readonly ProtoSerialiser _serialiser = new ProtoSerialiser();
+        private readonly object _disposeSync = new object();
+        private readonly object _connectSync = new object();
+        private readonly object _typeSync = new object();
+        private Action<IPEndPoint> _connected;
 
-        public Subscriber(IPEndPoint[] endPoint)
+        public Subscriber(IPEndPoint[] endPoint, string name = null)
         {
             _endPoint = endPoint;
+            _name = name;
         }
 
-        public void Subscribe<T>(string topic, Action<T> action)
+        public void Subscribe<T>(Action<T> action)
         {
-            _action = m => action((T) m);
+            Subscribe(null, action);
+        }
+
+        public void Subscribe<T>(string topic, Action<T> action, Action<IPEndPoint> connected = null)
+        {
+            _action = m => action((T)m);
+            
+            _connected = connected;
 
             _topic = topic;
+            
             lock (_typeSync)
-                _type = typeof (T);
+                _type = typeof(T);
 
             Connect();
         }
@@ -63,47 +74,52 @@ namespace ProtobufSockets
             if (!Monitor.TryEnter(_connectSync)) return;
             try
             {
-                try
-                {
-                    _indexEndPoint++;
-                    if (_indexEndPoint == _endPoint.Length)
-                        _indexEndPoint = 0;
+                _indexEndPoint++;
+                if (_indexEndPoint == _endPoint.Length)
+                    _indexEndPoint = 0;
 
-                    if (_tcpClient != null)
-                        _tcpClient.Close();
+                if (_tcpClient != null)
+                    _tcpClient.Close();
 
-                    _tcpClient = new TcpClient {NoDelay = true, LingerState = {Enabled = true, LingerTime = 0}};
+                _tcpClient = new TcpClient { NoDelay = true, LingerState = { Enabled = true, LingerTime = 0 } };
 
-                    _tcpClient.Connect(_endPoint[_indexEndPoint]);
+                _tcpClient.Connect(_endPoint[_indexEndPoint]);
 
-                    _networkStream = _tcpClient.GetStream();
+                _networkStream = _tcpClient.GetStream();
 
-                    Serializer.SerializeWithLengthPrefix(_networkStream, _topic, PrefixStyle.Base128);
-                    var ack = Serializer.DeserializeWithLengthPrefix<string>(_networkStream, PrefixStyle.Base128);
+                _serialiser.Serialise(_networkStream, new Header { Topic = _topic, Type = _type.Name, Name = _name });
+                var ack = _serialiser.Deserialize<string>(_networkStream);
 
-                    CleanExitConsumerThread();
+                CleanExitConsumerThread();
 
-                    _consumerThread = new Thread(Consume) {IsBackground = true};
-                    _consumerThread.Start();
+                _consumerThread = new Thread(Consume) { IsBackground = true };
+                _consumerThread.Start();
 
-                    Log.Info(Tag, "publisher ack.. " + ack);
-                    Log.Info(Tag, "subscribing started..");
-                }
-                catch (InvalidOperationException)
-                {
-                    Log.Info(Tag, "cannot connect, reconnecting..");
-                    Reconnect();
-                }
-                catch (SocketException)
-                {
-                    Log.Info(Tag, "cannot connect, reconnecting..");
-                    Reconnect();
-                }
-                catch (Exception e)
-                {
-                    Log.Info(Tag, "ERROR1: {0} : {1}", e.GetType(), e.Message);
-                    Reconnect();
-                }
+                if (_connected != null)
+                    _connected(_endPoint[_indexEndPoint]);
+
+                Log.Debug(Tag, "publisher ack.. " + ack);
+                Log.Debug(Tag, "subscribing started..");
+            }
+            catch (InvalidOperationException)
+            {
+                Log.Info(Tag, "cannot connect, reconnecting..");
+                Reconnect();
+            }
+            catch (SocketException)
+            {
+                Log.Info(Tag, "cannot connect, reconnecting..");
+                Reconnect();
+            }
+            catch (ProtoSerialiserException)
+            {
+                Log.Info(Tag, "cannot connect, reconnecting..");
+                Reconnect();
+            }
+            catch (Exception e)
+            {
+                Log.Error(Tag, "UNEXPECTED_ERROR_SUB1: {0} : {1}", e.GetType(), e.Message);
+                Reconnect();
             }
             finally
             {
@@ -114,7 +130,7 @@ namespace ProtobufSockets
         private void CleanExitConsumerThread()
         {
             if (_consumerThread == null) return;
-            
+
             try
             {
                 if (!_consumerThread.Join(1000))
@@ -122,9 +138,9 @@ namespace ProtobufSockets
                     _consumerThread.Abort();
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                Log.Info(Tag, "IGNORE_ERROR1: {0} : {1}", e.GetType(), e.Message);
+                Log.Error(Tag, "UNEXPECTED_ERROR_SUB2: {0} : {1}", e.GetType(), e.Message);
             }
         }
 
@@ -140,7 +156,7 @@ namespace ProtobufSockets
                 }
                 catch (Exception e)
                 {
-                    Log.Info(Tag, "IGNORE_ERROR2: {0} : {1}", e.GetType(), e.Message);
+                    Log.Error(Tag, "UNEXPECTED_ERROR_SUB3: {0} : {1}", e.GetType(), e.Message);
                 }
                 _reconnectTimer = new Timer(_ => Connect(), null, 1000, Timeout.Infinite);
             }
@@ -158,38 +174,22 @@ namespace ProtobufSockets
 
             var typeName = type.Name;
 
-            RuntimeTypeModel model = RuntimeTypeModel.Default;
-
             Log.Info(Tag, "consume started..");
 
             while (true)
             {
                 try
                 {
-                    var header = Serializer.DeserializeWithLengthPrefix<Header>(_networkStream, PrefixStyle.Base128);
+                    var header = _serialiser.Deserialize<Header>(_networkStream);
 
-                    if (header == null)
-                    {
-                        Log.Info(Tag, "cannot serialise network stream..");
-                        lock (_disposeSync) if (_disposed) break;
-                        Reconnect();
-                        break;
-                    }
-                    
                     if (header.Type != typeName)
                     {
-                        Serializer.DeserializeWithLengthPrefix<string>(_networkStream, PrefixStyle.Base128);
+                        Log.Debug(Tag, "Ignoring unmatched type. (Subscribed with wrong type?)");
+                        _serialiser.Chew(_networkStream);
                         continue;
                     }
-                    var message = model.DeserializeWithLengthPrefix(_networkStream, null, type, PrefixStyle.Base128, 0);
 
-                    if (message == null)
-                    {
-                        Log.Info(Tag, "cannot serialise network stream..");
-                        lock (_disposeSync) if (_disposed) break;
-                        Reconnect();
-                        break;
-                    }
+                    var message = _serialiser.Deserialize(_networkStream, type);
 
                     Log.Info(Tag, "got message..");
 
@@ -202,10 +202,16 @@ namespace ProtobufSockets
                     Reconnect();
                     break;
                 }
+                catch (ProtoSerialiserException)
+                {
+                    Log.Info(Tag, "cannot read from publisher..");
+                    lock (_disposeSync) if (_disposed) break;
+                    Reconnect();
+                    break;
+                }
                 catch (Exception e)
                 {
-                    Log.Info(Tag, "ERROR2: {0} : {1}", e.GetType(), e.Message);
-
+                    Log.Info(Tag, "UNEXPECTED_ERROR_SUB4: {0} : {1}", e.GetType(), e.Message);
                     lock (_disposeSync) if (_disposed) break;
                     Reconnect();
                     break;

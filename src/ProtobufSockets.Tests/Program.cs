@@ -1,16 +1,45 @@
 ﻿using System;
+using System.CodeDom;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
+using Newtonsoft.Json;
+using ProtoBuf;
+using Xunit;
 
 namespace ProtobufSockets.Tests
 {
     public class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            if (args.Length > 0 && args[0] == "test")
+            if (args.Length == 0 || args[0] == "test")
             {
-                new NetworkTests().Publisher_starts_with_an_ephemeral_port();
+                Console.WriteLine("Running unit tests:");
+                var logger = new XunitLogger(Console.Out);
+                var assemblyFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                    Process.GetCurrentProcess().ProcessName + ".exe");
+                var testRunner = new TestRunner(new ExecutorWrapper(assemblyFilename, null, false), logger);
+                var pass = testRunner.RunAssembly() != TestRunnerResult.Failed;
+                if (pass)
+                {
+                    Console.WriteLine("PASSED");
+                }
+                else
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                    Console.WriteLine("  !!!                                                 !!!");
+                    Console.WriteLine("  !!! FAILED! FAILED! FAILED! FAILED! FAILED! FAILED! !!!");
+                    Console.WriteLine("  !!!                                                 !!!");
+                    Console.WriteLine("  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                    Console.WriteLine();
+                }
+                return pass ? 0 : 255;
             }
 
             const int port = 23456;
@@ -32,6 +61,18 @@ namespace ProtobufSockets.Tests
             {
                 new Program().Pub(port + 2);
             }
+
+
+            if (args.Length > 0 && args[0] == "sub-fast")
+            {
+                new Program().SubFast(port);
+            }
+            if (args.Length > 0 && args[0] == "pub-fast")
+            {
+                new Program().PubFast(port);
+            }
+
+            return 0;
         }
 
         public void Sub(int port)
@@ -66,9 +107,83 @@ namespace ProtobufSockets.Tests
             {
                 publisher.Publish("*", new Message { Payload = "payload" + i++ });
                 if (r.WaitOne(500)) break;
+
+                if (i % 3 == 0)
+                {
+                    Console.WriteLine(JsonConvert.SerializeObject(publisher.GetStats(), Formatting.Indented));
+                }
             }
 
             publisher.Dispose();
+        }
+
+        public void PubFast(int port)
+        {
+            var r = new ManualResetEvent(false);
+            Console.CancelKeyPress += (_, e) => { e.Cancel = true; r.Set(); };
+
+            int i = 0;
+            using (var publisher = new Publisher(new IPEndPoint(IPAddress.Any, port)))
+                while (true)
+                {
+                    Message message = Message.Large(1);
+                    publisher.Publish("*", message);
+                    if (r.WaitOne(1)) break;
+                    if (i++%100 == 0)
+                    {
+                        var clients = publisher.GetStats().Clients.ToList();
+                        if (clients.Count > 0)
+                        {
+                            Console.WriteLine("LOSS:{0} BACK:{1}",
+                                clients.Sum(c=>c.MessageLoss),
+                                clients.Sum(c => c.Backlog));
+                        }
+                    }
+                }
+        }
+
+        public void SubFast(int port)
+        {
+            const int max = 1000;
+            var samples = new int[max];
+
+            var subscriber = new Subscriber(new[]
+            {
+                new IPEndPoint(IPAddress.Loopback, port),
+            });
+
+            int i = -1;
+            Stopwatch sw = Stopwatch.StartNew();
+            subscriber.Subscribe<Message>("*", m =>
+            {
+                int exchange = Interlocked.CompareExchange(ref i, -1, max - 1);
+                if (exchange == max - 1)
+                {
+                    Console.WriteLine("### {0:0.00} MB/s", (samples.Sum()/sw.Elapsed.TotalSeconds)/(1024*1024));
+                    Console.WriteLine("### {0:0.00} messages/s", (samples.Length/sw.Elapsed.TotalSeconds));
+                    sw.Restart();
+                }
+
+                int c = Interlocked.Increment(ref i);
+                var memoryStream = new MemoryStream();
+                Serializer.SerializeWithLengthPrefix(memoryStream, m, PrefixStyle.Base128);
+                byte[] bytes = memoryStream.ToArray();
+                samples[c] = bytes.Length;
+            });
+
+            var r = new ManualResetEvent(false);
+            Console.CancelKeyPress += (_, e) => { e.Cancel = true; r.Set(); };
+            r.WaitOne();
+
+            subscriber.Dispose();
+        }
+
+        public int SizeOfLargeMessage()
+        {
+            var memoryStream = new MemoryStream();
+            Serializer.SerializeWithLengthPrefix(memoryStream, Message.Large(10), PrefixStyle.Base128);
+            byte[] bytes = memoryStream.ToArray();
+            return bytes.Length;
         }
     }
 }
