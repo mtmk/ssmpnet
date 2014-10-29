@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -49,11 +49,11 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ProtobufSockets.Tests\ProtobufSockets.Tests.csproj">
-      <Project>{daa4aa5a-d082-41aa-92bd-5826725af517}</Project>
+      <Project>{DAA4AA5A-D082-41AA-92BD-5826725AF517}</Project>
       <Name>ProtobufSockets.Tests</Name>
     </ProjectReference>
     <ProjectReference Include="..\ProtobufSockets\ProtobufSockets.csproj">
-      <Project>{3c11cc05-ca2a-4205-a08a-69ab1c97fc29}</Project>
+      <Project>{3C11CC05-CA2A-4205-A08A-69AB1C97FC29}</Project>
       <Name>ProtobufSockets</Name>
     </ProjectReference>
   </ItemGroup>

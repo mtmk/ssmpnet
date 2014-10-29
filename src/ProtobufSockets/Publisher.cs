@@ -86,14 +86,18 @@ namespace ProtobufSockets
         private void ClientAccept(IAsyncResult ar)
         {
             TcpClient tcpClient;
-            try
+
+			try
             {
                 tcpClient = _listener.EndAcceptTcpClient(ar);
             }
+			catch (NullReferenceException)
+			{
+				return; // Listener already stopped
+			}
             catch (InvalidOperationException)
             {
-                // Listener already stopped
-                return;
+				return; // Listener already stopped
             }
 
             _listener.BeginAcceptTcpClient(ClientAccept, null);

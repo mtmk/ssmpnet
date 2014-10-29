@@ -19,28 +19,11 @@ namespace ProtobufSockets.Tests
         {
             if (args.Length == 0 || args[0] == "test")
             {
-                Console.WriteLine("Running unit tests:");
-                var logger = new XunitLogger(Console.Out);
-                var assemblyFilename = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-                    Process.GetCurrentProcess().ProcessName + ".exe");
-                var testRunner = new TestRunner(new ExecutorWrapper(assemblyFilename, null, false), logger);
-                var pass = testRunner.RunAssembly() != TestRunnerResult.Failed;
-                if (pass)
-                {
-                    Console.WriteLine("PASSED");
-                }
-                else
-                {
-                    Console.WriteLine();
-                    Console.WriteLine("  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                    Console.WriteLine("  !!!                                                 !!!");
-                    Console.WriteLine("  !!! FAILED! FAILED! FAILED! FAILED! FAILED! FAILED! !!!");
-                    Console.WriteLine("  !!!                                                 !!!");
-                    Console.WriteLine("  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                    Console.WriteLine();
-                }
-                return pass ? 0 : 255;
-            }
+				new PubSubTests ().Multiple_publishers_and_subscribers_with_failover ();
+				new PubSubTests ().Publisher_starts_with_an_ephemeral_port ();
+				new PubSubTests ().Publish_different_topics ();
+				return 0;
+           } 
 
             const int port = 23456;
 
